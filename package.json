@@ -80,6 +80,6 @@
   },
   "dependencies": {
     "@aave/aave-stake": "^1.0.4",
-    "@aave/protocol-v2": "^1.0.2-alpha.0"
+    "@aave/protocol-v2": "^1.0.1"
   }
 }
