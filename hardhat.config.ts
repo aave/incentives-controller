@@ -28,7 +28,7 @@ const MAINNET_FORK = process.env.MAINNET_FORK === 'true';
 
 // Prevent to load scripts before compilation and typechain
 if (!SKIP_LOAD) {
-  ['misc', 'payloads'].forEach((folder) => {
+  ['misc', 'payloads', 'migrations', 'deployment'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder);
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
@@ -68,21 +68,21 @@ const buidlerConfig: HardhatUserConfig = {
       {
         version: '0.7.5',
         settings: {
-          optimizer: { enabled: true, runs: 200 },
+          optimizer: { enabled: false, runs: 200 },
           evmVersion: 'istanbul',
         },
       },
       {
         version: '0.6.10',
         settings: {
-          optimizer: { enabled: true, runs: 200 },
+          optimizer: { enabled: false, runs: 200 },
           evmVersion: 'istanbul',
         },
       },
       {
         version: '0.6.12',
         settings: {
-          optimizer: { enabled: true, runs: 200 },
+          optimizer: { enabled: false, runs: 200 },
           evmVersion: 'istanbul',
         },
       },
