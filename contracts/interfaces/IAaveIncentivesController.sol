@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
+import {
+  IAaveDistributionManager
+} from '@aave/aave-stake/contracts/interfaces/IAaveDistributionManager.sol';
 
-interface IAaveIncentivesController {
+interface IAaveIncentivesController is IAaveDistributionManager {
   function handleAction(
     address asset,
     uint256 userBalance,

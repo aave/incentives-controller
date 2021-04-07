@@ -5,7 +5,6 @@ import FileSync from 'lowdb/adapters/FileSync';
 import { WAD } from './constants';
 import { Wallet, ContractTransaction } from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
-import { BuidlerRuntimeEnvironment } from '@nomiclabs/buidler/types';
 import { tEthereumAddress } from './types';
 import { isAddress } from 'ethers/lib/utils';
 import { isZeroAddress } from 'ethereumjs-util';
@@ -17,9 +16,9 @@ export const stringToBigNumber = (amount: string): BigNumber => new BigNumber(am
 
 export const getDb = () => low(new FileSync('./deployed-contracts.json'));
 
-export let DRE: HardhatRuntimeEnvironment | BuidlerRuntimeEnvironment;
+export let DRE: HardhatRuntimeEnvironment;
 
-export const setDRE = (_DRE: HardhatRuntimeEnvironment | BuidlerRuntimeEnvironment) => {
+export const setDRE = (_DRE: HardhatRuntimeEnvironment) => {
   DRE = _DRE;
 };
 
@@ -38,8 +37,8 @@ export const timeLatest = async () => {
   return new BigNumber(block.timestamp);
 };
 
-export const advanceBlock = async (timestamp: number) =>
-  await DRE.ethers.provider.send('evm_mine', [timestamp]);
+export const advanceBlock = async (timestamp?: number) =>
+  await DRE.ethers.provider.send('evm_mine', timestamp ? [timestamp] : []);
 
 export const increaseTime = async (secondsToIncrease: number) => {
   await DRE.ethers.provider.send('evm_increaseTime', [secondsToIncrease]);
@@ -114,4 +113,35 @@ export const notFalsyOrZeroAddress = (address: tEthereumAddress | null | undefin
     return false;
   }
   return isAddress(address) && !isZeroAddress(address);
+};
+
+export const latestBlock = async () => DRE.ethers.provider.getBlockNumber();
+
+export const advanceBlockTo = async (target: number) => {
+  const currentBlock = await latestBlock();
+  console.log('latest block: ', currentBlock);
+  const start = Date.now();
+  let notified;
+  if (target < currentBlock)
+    throw Error(`Target block #(${target}) is lower than current block #(${currentBlock})`);
+  // eslint-disable-next-line no-await-in-loop
+  while ((await latestBlock()) < target) {
+    if (!notified && Date.now() - start >= 5000) {
+      notified = true;
+      console.log("advanceBlockTo: Advancing too many blocks is causing this test to be slow.'");
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await advanceBlock();
+  }
+};
+
+export const impersonateAccountsHardhat = async (accounts: string[]) => {
+  // eslint-disable-next-line no-restricted-syntax
+  for (const account of accounts) {
+    // eslint-disable-next-line no-await-in-loop
+    await DRE.network.provider.request({
+      method: 'hardhat_impersonateAccount',
+      params: [account],
+    });
+  }
 };
