@@ -269,7 +269,7 @@ contract AaveIncentivesController is
    * @dev Extends the end of the distribution in regards of current timestamp.
    * @param distributionDuration The timestamp duration of the new distribution
    **/
-  function extendDistribution(uint256 distributionDuration) external onlyRewardsAdmin {
+  function extendDistribution(uint256 distributionDuration) external override onlyRewardsAdmin {
     _extendDistribution(distributionDuration);
   }
 }

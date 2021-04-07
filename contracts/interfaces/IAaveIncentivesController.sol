@@ -30,4 +30,6 @@ interface IAaveIncentivesController {
   function allowClaimOnBehalf(address user, address caller) external;
 
   function getAllowedToClaimOnBehalf(address user) external view returns (address);
+
+  function extendDistribution(uint256 distributionDuration) external;
 }
