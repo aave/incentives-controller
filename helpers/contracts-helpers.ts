@@ -219,3 +219,39 @@ export const getSignatureFromTypedData = (
   });
   return fromRpcSig(signature);
 };
+
+type ContractGetter = { address?: string; slug?: string };
+export const getContractFactory = <ContractType extends Contract>(
+  contractName: eContractid
+) => async (contractGetter?: ContractGetter): Promise<ContractType> => {
+  let deployedContract = '';
+  if (!contractGetter?.address) {
+    try {
+      deployedContract = (
+        await getDb()
+          .get(
+            `${contractName}${contractGetter?.slug ? `-${contractGetter.slug}` : ''}.${
+              DRE.network.name
+            }`
+          )
+          .value()
+      ).address;
+    } catch (e) {
+      throw new Error(
+        `Contract ${contractName} was not deployed on ${DRE.network.name} or not stored in DB`
+      );
+    }
+  }
+  return (await DRE.ethers.getContractAt(
+    contractName,
+    contractGetter?.address || deployedContract
+  )) as ContractType;
+};
+
+export const getBlockTimestamp = async (blockNumber?: number): Promise<number> => {
+  if (!blockNumber) {
+    throw new Error('No block number passed');
+  }
+  const block = await DRE.ethers.provider.getBlock(blockNumber);
+  return block.timestamp;
+};

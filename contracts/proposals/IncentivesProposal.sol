@@ -88,6 +88,6 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     incentivesController.configureAssets(incentivicedTokens);
 
     // Extend distribution at the incentives controller
-    incentivesController.extendDistribution(DISTRIBUTION_DURATION);
+    //incentivesController.extendDistribution(DISTRIBUTION_DURATION);
   }
 }

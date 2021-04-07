@@ -1,5 +1,5 @@
 import { task } from 'hardhat/config';
-import { ConfigNames, loadPoolConfig } from '../../helpers/configuration';
+/*import { ConfigNames, loadPoolConfig } from '../../helpers/configuration';
 import {
   getAaveProtocolDataProvider,
   getLendingPoolAddressesProvider,
@@ -75,3 +75,4 @@ task('print-config', 'Inits the DRE, to have access to all the plugins')
       });
     }
   });
+*/

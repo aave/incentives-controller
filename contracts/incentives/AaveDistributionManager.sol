@@ -2,7 +2,7 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import {SafeMath} from '@aave/aave-stake/contracts/lib/SafeMath.sol';
+import {SafeMath} from '../lib/SafeMath.sol';
 import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
 import {IAaveDistributionManager} from '@aave/aave-stake/contracts/interfaces/IAaveDistributionManager.sol';
 
