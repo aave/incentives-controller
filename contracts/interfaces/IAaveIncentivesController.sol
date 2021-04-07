@@ -27,7 +27,7 @@ interface IAaveIncentivesController {
     address to
   ) external returns (uint256);
 
-  function allowClaimOnBehalf(address user, address caller) external;
+  function setClaimer(address user, address caller) external;
 
-  function getAllowedToClaimOnBehalf(address user) external view returns (address);
+  function getClaimer(address user) external view returns (address);
 }
