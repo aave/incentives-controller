@@ -6,7 +6,7 @@ import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {ILendingPoolAddressesProvider} from '../interfaces/ILendingPoolAddressesProvider.sol';
 import {ILendingPoolConfigurator} from '../interfaces/ILendingPoolConfigurator.sol';
 import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
-import {IAaveEcosystemReserve} from '../interfaces/IAaveEcosystemReserve.sol';
+import {IAaveEcosystemReserveController} from '../interfaces/IAaveEcosystemReserveController.sol';
 import {IProposalIncentivesExecutor} from '../interfaces/IProposalIncentivesExecutor.sol';
 import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
 import {DataTypes} from '../utils/DataTypes.sol';
@@ -26,11 +26,11 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   address constant POOL_CONFIGURATOR = 0x311Bb771e4F8952E6Da169b425E7e92d6Ac45756;
   address constant POOL_PROVIDER = 0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5;
   address constant LENDING_POOL = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
-  address constant ECO_RESERVE_ADDRESS = 0x25F2226B597E8F9514B3F68F00f494cF4f286491;
+  address constant ECO_RESERVE_ADDRESS = 0x1E506cbb6721B83B1549fa1558332381Ffa61A93;
 
   // TODO: Random constants below, pending revision
   uint256 constant DISTRIBUTION_DURATION = 31536000; // 1 YEAR
-  uint256 constant DISTRIBUTION_AMOUNT = 99600000000000000000000; // 99600 AAVE
+  uint256 constant DISTRIBUTION_AMOUNT = 10000000000000000000000; // 10000 AAVE
   uint128 constant EMISSION_PER_SECOND = 3044140000000000; // 0.00304414 AAVE per second
 
   function execute(
@@ -38,13 +38,15 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     address[6] memory aTokenImplementations,
     address[6] memory variableDebtImplementation
   ) external override {
-    uint256 tokensCounter = 0;
+    uint256 tokensCounter;
     address[6] memory reserves = [USDT, USDC, DAI, WETH, WBTC, GUSD];
-    DistributionTypes.AssetConfigInput[] memory incentivicedTokens;
+    DistributionTypes.AssetConfigInput[] memory incentivicedTokens =
+      new DistributionTypes.AssetConfigInput[](12);
     ILendingPoolConfigurator poolConfigurator = ILendingPoolConfigurator(POOL_CONFIGURATOR);
     IAaveIncentivesController incentivesController =
       IAaveIncentivesController(incentivesControllerAddress);
-    IAaveEcosystemReserve ecosystemReserve = IAaveEcosystemReserve(ECO_RESERVE_ADDRESS);
+    IAaveEcosystemReserveController ecosystemReserveController =
+      IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS);
 
     require(
       aTokenImplementations.length == variableDebtImplementation.length &&
@@ -56,6 +58,7 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     for (uint256 x; x < reserves.length; x++) {
       DataTypes.ReserveData memory reserveData =
         ILendingPoolData(LENDING_POOL).getReserveData(reserves[x]);
+
       // Update aToken impl
       poolConfigurator.updateAToken(reserves[x], aTokenImplementations[x]);
 
@@ -63,11 +66,11 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
       poolConfigurator.updateVariableDebtToken(reserves[x], variableDebtImplementation[x]);
 
       // Configure aToken at incentives controller
-      incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput({
-        emissionPerSecond: EMISSION_PER_SECOND,
-        totalStaked: IERC20(reserveData.aTokenAddress).totalSupply(),
-        underlyingAsset: reserveData.aTokenAddress
-      });
+      incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput(
+        EMISSION_PER_SECOND,
+        IERC20(reserveData.aTokenAddress).totalSupply(),
+        reserveData.aTokenAddress
+      );
       tokensCounter++;
 
       // Configure variable debt token at incentives controller
@@ -79,7 +82,11 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
       tokensCounter++;
     }
     // Transfer AAVE funds to the Incentives Controller
-    ecosystemReserve.transfer(IERC20(AAVE_TOKEN), incentivesControllerAddress, DISTRIBUTION_AMOUNT);
+    ecosystemReserveController.transfer(
+      AAVE_TOKEN,
+      incentivesControllerAddress,
+      DISTRIBUTION_AMOUNT
+    );
 
     // Enable incentives in aTokens and Variable Debt tokens
     incentivesController.configureAssets(incentivicedTokens);

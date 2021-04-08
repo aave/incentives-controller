@@ -36,8 +36,6 @@ const {
   AAVE_SHORT_EXECUTOR = '0xee56e2b3d491590b5b31738cc34d5232f378a8d5', // mainnet
 } = process.env;
 
-console.log(IPFS_HASH);
-
 if (
   !RESERVES ||
   !POOL_CONFIGURATOR ||
@@ -218,6 +216,7 @@ describe('Enable incentives in target assets', () => {
   it('Should activate incentives to selected reserves', async () => {
     // Execute payload
     await (await gov.execute(proposalId)).wait();
+    console.log('Proposal executed');
 
     const proposalState = await gov.getProposalState(proposalId);
     expect(proposalState).to.be.equal(7);
@@ -228,18 +227,23 @@ describe('Enable incentives in target assets', () => {
       variableDebtTokenAddress,
     } = await pool.getReserveData(DAI_TOKEN);
 
-    aDAI = (await ethers.getContractAt('IERC20', aTokenAddress, proposer)) as IERC20;
+    aDAI = (await ethers.getContractAt(
+      '@aave/aave-stake/contracts/interfaces/IERC20.sol:IERC20',
+      aTokenAddress,
+      proposer
+    )) as IERC20;
     variableDebtDAI = (await ethers.getContractAt(
-      'IERC20',
+      '@aave/aave-stake/contracts/interfaces/IERC20.sol:IERC20',
       variableDebtTokenAddress,
       proposer
     )) as IERC20;
 
+    /*
     // Deposit DAI to LendingPool
     await (await dai.connect(proposer).approve(pool.address, parseEther('2000'))).wait();
     await (await pool.deposit(dai.address, parseEther('100'), proposer.address, 0)).wait();
     expect(await aDAI.balanceOf(proposer.address)).to.be.equal(parseEther('100'));
-
+    */
     // Claim rewards TBD
   });
 });

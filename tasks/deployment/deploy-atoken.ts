@@ -1,5 +1,6 @@
 import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
+import { ATokenRevision2Factory } from '../../types';
 import { ATokenFactory } from '../../types/ATokenFactory';
 import { IERC20DetailedFactory } from '../../types/IERC20DetailedFactory';
 import { ILendingPoolDataFactory } from '../../types/ILendingPoolDataFactory';
