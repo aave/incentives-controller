@@ -82,7 +82,7 @@
   "dependencies": {
     "@aave/aave-stake": "^1.0.4",
     "@aave/governance-v2": "^1.0.0",
-    "@aave/protocol-v2": "^1.0.1",
+    "@aave/protocol-v2": "^1.0.2-fat.1",
     "hardhat-deploy": "^0.7.2"
   }
 }

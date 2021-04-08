@@ -28,11 +28,13 @@ task('propose-incentives', 'Create some proposals and votes')
       aTokens = aTokens.split(',');
       variableDebtTokens = variableDebtTokens.split(',');
 
-      const callData = ProposalIncentivesExecutorFactory.connect(
-        ZERO_ADDRESS,
-        proposer
-      ).interface.encodeFunctionData('execute', [incentivesProxy, aTokens, variableDebtTokens]);
+      const callData = _DRE.ethers.utils.defaultAbiCoder.encode(
+        ['address', 'address[6]', 'address[6]'],
+        [incentivesProxy, aTokens, variableDebtTokens]
+      );
+
       const executeSignature = 'execute(address,address[6],address[6])';
+      // const executeSignature = 'execute()';
       const gov = await IAaveGovernanceV2Factory.connect(aaveGovernance, proposer);
       const ipfsEncoded = `0x${bs58.decode(ipfsHash).slice(2).toString('hex')}`;
 
