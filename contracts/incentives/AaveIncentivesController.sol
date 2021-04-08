@@ -8,13 +8,10 @@ import {SafeMath} from '../lib/SafeMath.sol';
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {IAToken} from '@aave/aave-stake/contracts/interfaces/IAToken.sol';
 import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
-import {IStakedToken} from '@aave/aave-stake/contracts/interfaces/IStakedToken.sol';
 import {VersionedInitializable} from '@aave/aave-stake/contracts/utils/VersionedInitializable.sol';
 import {AaveDistributionManager} from './AaveDistributionManager.sol';
+import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
 
-interface IStakedTokenWithConfig is IStakedToken {
-  function STAKED_TOKEN() external view returns(uint256);
-}
 
 /**
  * @title AaveIncentivesController
@@ -57,12 +54,8 @@ contract AaveIncentivesController is
 
   /**
    * @dev Initialize AaveIncentivesController
-   * @param addressesProvider address of the addresses provider for this incentives controller
    **/
-  function initialize(
-    address addressesProvider
-  ) external initializer {
-
+  function initialize() external initializer {
     //approves the safety module to allow staking
     IERC20(_safetyModule.STAKED_TOKEN()).approve(address(_safetyModule), type(uint256).max);
   }

@@ -91,13 +91,13 @@ describe('Enable incentives in target assets', () => {
       'AaveIncentivesController',
       {
         from: proposer.address,
-        args: [AAVE_TOKEN, AAVE_STAKE, '0', AAVE_SHORT_EXECUTOR],
+        args: [ AAVE_STAKE, AAVE_SHORT_EXECUTOR],
       }
     );
     const incentivesInitParams = AaveIncentivesControllerFactory.connect(
       incentivesImplementation,
       proposer
-    ).interface.encodeFunctionData('initialize', [ZERO_ADDRESS, '0', AAVE_SHORT_EXECUTOR]);
+    ).interface.encodeFunctionData('initialize', []);
 
     // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
     const { address: incentivesProxy } = await DRE.deployments.deploy(
