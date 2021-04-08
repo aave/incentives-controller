@@ -2,9 +2,9 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import {SafeMath} from '../lib/SafeMath.sol';
+import {IAaveDistributionManager} from '../interfaces/IAaveDistributionManager.sol';
 import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
-import {IAaveDistributionManager} from '@aave/aave-stake/contracts/interfaces/IAaveDistributionManager.sol';
+import {SafeMath} from '../lib/SafeMath.sol';
 
 /**
  * @title AaveDistributionManager
@@ -29,11 +29,6 @@ contract AaveDistributionManager is IAaveDistributionManager {
 
   uint256 internal _distributionEnd;
 
-  event AssetConfigUpdated(address indexed asset, uint256 emission);
-  event AssetIndexUpdated(address indexed asset, uint256 index);
-  event UserIndexUpdated(address indexed user, address indexed asset);
-  event DistributionEndUpdated(uint256 newDistributionEnd);
-
   modifier onlyEmissionManager() {
       require(msg.sender == EMISSION_MANAGER, 'ONLY_EMISSION_MANAGER');
       _;
@@ -42,30 +37,20 @@ contract AaveDistributionManager is IAaveDistributionManager {
   constructor(address emissionManager) {
     EMISSION_MANAGER = emissionManager;
   }
-
       
-   /* @dev sets the end date of the distribution
-   * @param distributionEnd The unix timestamp duration of the new distribution
-   **/
-  function setDistributionEnd(uint256 distributionEnd) internal {
-    _distributionEnd = block.timestamp.add(distributionEnd);
+  /// @inheritdoc IAaveDistributionManager
+  function setDistributionEnd(uint256 distributionEnd) external override onlyEmissionManager {
+    _distributionEnd = distributionEnd;
     emit DistributionEndUpdated(distributionEnd);
   }
 
 
-  /**
-   * @dev Returns the timestamp of the end of the current distribution
-   * @return uint256 unix timestamp
-   **/
-  function getDistributionEnd() external view returns (uint256) {
+  /// @inheritdoc IAaveDistributionManager
+  function getDistributionEnd() external override view returns (uint256) {
     return _distributionEnd;
   }
 
-
-  /**
-   * @dev Configures the distribution of rewards for a list of assets
-   * @param assetsConfigInput The list of configurations to apply
-   **/
+  /// @inheritdoc IAaveDistributionManager
   function configureAssets(DistributionTypes.AssetConfigInput[] calldata assetsConfigInput)
     external
     override

@@ -2,9 +2,9 @@
 pragma solidity 0.7.5;
 
 import {Context} from './Context.sol';
-import {IERC20} from '../interfaces/IERC20.sol';
-import {IERC20Detailed} from '../interfaces/IERC20Detailed.sol';
 import {SafeMath} from '../lib/SafeMath.sol';
+import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
+import {IERC20Detailed} from '@aave/aave-stake/contracts/interfaces/IERC20Detailed.sol';
 
 /**
  * @title ERC20

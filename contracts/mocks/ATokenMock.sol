@@ -3,8 +3,8 @@ pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
 import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
-import {DistributionTypes} from '../lib/DistributionTypes.sol';
-import {IAToken} from '../interfaces/IAToken.sol';
+import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
+import {IAToken} from '@aave/aave-stake/contracts/interfaces/IAToken.sol';
 
 contract ATokenMock is IAToken {
   IAaveIncentivesController public _aic;

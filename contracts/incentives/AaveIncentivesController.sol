@@ -7,8 +7,8 @@ import {SafeMath} from '../lib/SafeMath.sol';
 
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {IAToken} from '@aave/aave-stake/contracts/interfaces/IAToken.sol';
-import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 import {VersionedInitializable} from '@aave/aave-stake/contracts/utils/VersionedInitializable.sol';
+import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 import {AaveDistributionManager} from './AaveDistributionManager.sol';
 import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
 
@@ -36,10 +36,6 @@ contract AaveIncentivesController is
   // useful for contracts that hold tokens to be rewarded but don't have any native logic to claim Liquidity Mining rewards
   mapping(address => address) internal _authorizedClaimers;
 
-  event RewardsAccrued(address indexed user, uint256 amount);
-  event RewardsClaimed(address indexed user, address indexed to, address indexed claimer, uint256 amount);
-  event ClaimerSet(address indexed user, address indexed claimer);
-
   modifier onlyAuthorizedClaimers(address user, address caller) {
     require(_authorizedClaimers[user] == caller, 'CLAIMER_UNAUTHORIZED');
     _;
@@ -60,12 +56,7 @@ contract AaveIncentivesController is
     IERC20(_safetyModule.STAKED_TOKEN()).approve(address(_safetyModule), type(uint256).max);
   }
 
-  /**
-   * @dev Called by the corresponding asset on any update that affects the rewards distribution
-   * @param user The address of the user
-   * @param totalSupply The total supply of the asset in the lending pool
-   * @param userBalance The balance of the user of the asset in the lending pool
-   **/
+  /// @inheritdoc IAaveIncentivesController
   function handleAction(
     address user,
     uint256 totalSupply,
@@ -78,11 +69,7 @@ contract AaveIncentivesController is
     }
   }
 
-  /**
-   * @dev Returns the total of rewards of an user, already accrued + not yet accrued
-   * @param user The address of the user
-   * @return The rewards
-   **/
+  /// @inheritdoc IAaveIncentivesController
   function getRewardsBalance(address[] calldata assets, address user)
     external
     view
@@ -102,12 +89,7 @@ contract AaveIncentivesController is
     return unclaimedRewards;
   }
 
-  /**
-   * @dev Claims reward for an user, on all the assets of the lending pool, accumulating the pending rewards
-   * @param amount Amount of rewards to claim
-   * @param to Address that will be receiving the rewards
-   * @return Rewards claimed
-   **/
+  /// @inheritdoc IAaveIncentivesController
   function claimRewards(
     address[] calldata assets,
     uint256 amount,
@@ -116,14 +98,7 @@ contract AaveIncentivesController is
     return _claimRewards(assets, amount, msg.sender, msg.sender, to);
   }
 
-  /**
-   * @dev Claims reward for an user on behalf, on all the assets of the lending pool, accumulating the pending rewards. The caller must
-   * be whitelisted via "allowClaimOnBehalf" function by the RewardsAdmin role manager
-   * @param amount Amount of rewards to claim
-   * @param user Address to check and claim rewards
-   * @param to Address that will be receiving the rewards
-   * @return Rewards claimed
-   **/
+  /// @inheritdoc IAaveIncentivesController
   function claimRewardsOnBehalf(
     address[] calldata assets,
     uint256 amount,
@@ -133,13 +108,27 @@ contract AaveIncentivesController is
     return _claimRewards(assets, amount, msg.sender, user, to);
   }
 
+  /// @inheritdoc IAaveIncentivesController
   function setClaimer(address user, address caller) external override onlyEmissionManager {
     _authorizedClaimers[user] = caller;
     emit ClaimerSet(user, caller);
   }
 
-  function getClaimer(address user) external view override returns (address) {
+  /// @inheritdoc IAaveIncentivesController
+  function getClaimer(address user) external override view returns (address) {
     return _authorizedClaimers[user];
+  }
+
+  /// @inheritdoc IAaveIncentivesController
+  function getUserUnclaimedRewards(address _user) external override view returns (uint256) {
+    return _usersUnclaimedRewards[_user];
+  }
+
+  /**
+   * @dev returns the revision of the implementation contract
+   */
+  function getRevision() internal pure override returns (uint256) {
+    return REVISION;
   }
 
   /**
@@ -186,21 +175,5 @@ contract AaveIncentivesController is
     emit RewardsClaimed(user, to, claimer, amountToClaim);
 
     return amountToClaim;
-  }
-
-  /**
-   * @dev returns the unclaimed rewards of the user
-   * @param _user the address of the user
-   * @return the unclaimed user rewards
-   */
-  function getUserUnclaimedRewards(address _user) external view returns (uint256) {
-    return _usersUnclaimedRewards[_user];
-  }
-
-  /**
-   * @dev returns the revision of the implementation contract
-   */
-  function getRevision() internal pure override returns (uint256) {
-    return REVISION;
   }
 }

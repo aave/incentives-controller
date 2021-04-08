@@ -12,7 +12,6 @@ import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionType
 import {DataTypes} from '../utils/DataTypes.sol';
 import {ILendingPoolData} from '../interfaces/ILendingPoolData.sol';
 import {PercentageMath} from '../utils/PercentageMath.sol';
-import 'hardhat/console.sol';
 
 contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   using PercentageMath for uint256;
@@ -103,7 +102,7 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     // Enable incentives in aTokens and Variable Debt tokens
     incentivesController.configureAssets(incentivicedTokens);
 
-    // Extend distribution at the incentives controller
-    //incentivesController.extendDistribution(DISTRIBUTION_DURATION);
+    // Sets the end date for the distribution
+    incentivesController.setDistributionEnd(block.timestamp + DISTRIBUTION_DURATION);
   }
 }
