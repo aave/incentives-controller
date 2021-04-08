@@ -11,9 +11,11 @@ import {IProposalIncentivesExecutor} from '../interfaces/IProposalIncentivesExec
 import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
 import {DataTypes} from '../utils/DataTypes.sol';
 import {ILendingPoolData} from '../interfaces/ILendingPoolData.sol';
+import {PercentageMath} from '../utils/PercentageMath.sol';
 import 'hardhat/console.sol';
 
 contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
+  using PercentageMath for uint256;
   // Reserves Order: USDT/USDC/DAI/WETH/WBTC/GUSD
   address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
   address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
@@ -29,9 +31,8 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   address constant ECO_RESERVE_ADDRESS = 0x1E506cbb6721B83B1549fa1558332381Ffa61A93;
 
   // TODO: Random constants below, pending revision
-  uint256 constant DISTRIBUTION_DURATION = 31536000; // 1 YEAR
-  uint256 constant DISTRIBUTION_AMOUNT = 10000000000000000000000; // 10000 AAVE
-  uint128 constant EMISSION_PER_SECOND = 3044140000000000; // 0.00304414 AAVE per second
+  uint256 constant DISTRIBUTION_DURATION = 7776000; // 90 days
+  uint256 constant DISTRIBUTION_AMOUNT = 99000000000000000000000; // 99000 AAVE during 90 days
 
   function execute(
     address incentivesControllerAddress,
@@ -40,6 +41,7 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   ) external override {
     uint256 tokensCounter;
     address[6] memory reserves = [USDT, USDC, DAI, WETH, WBTC, GUSD];
+    uint256 totalEmissionPerSecond = DISTRIBUTION_AMOUNT / DISTRIBUTION_DURATION;
     DistributionTypes.AssetConfigInput[] memory incentivicedTokens =
       new DistributionTypes.AssetConfigInput[](12);
     ILendingPoolConfigurator poolConfigurator = ILendingPoolConfigurator(POOL_CONFIGURATOR);
@@ -59,6 +61,16 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
       DataTypes.ReserveData memory reserveData =
         ILendingPoolData(LENDING_POOL).getReserveData(reserves[x]);
 
+      // AAVE Emission is splitted 50/50 between ATokens and Variable Debt Tokens
+      uint256 atokenEmission = totalEmissionPerSecond / 6 / 2;
+      uint256 variableDebtTokenEmission = totalEmissionPerSecond / 6 / 2;
+
+      // For WETH or WBTC assets, them is splitted 90% for ATokens and 10% for Variable Debt Tokens
+      if (reserves[x] == WETH || reserves[x] == WBTC) {
+        atokenEmission = (totalEmissionPerSecond / 6).percentMul(9000) - 1;
+        variableDebtTokenEmission = (totalEmissionPerSecond / 6).percentMul(1000);
+      }
+
       // Update aToken impl
       poolConfigurator.updateAToken(reserves[x], aTokenImplementations[x]);
 
@@ -67,18 +79,18 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
 
       // Configure aToken at incentives controller
       incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput(
-        EMISSION_PER_SECOND,
+        uint128(atokenEmission),
         IERC20(reserveData.aTokenAddress).totalSupply(),
         reserveData.aTokenAddress
       );
       tokensCounter++;
 
       // Configure variable debt token at incentives controller
-      incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput({
-        emissionPerSecond: EMISSION_PER_SECOND,
-        totalStaked: IERC20(reserveData.variableDebtTokenAddress).totalSupply(),
-        underlyingAsset: reserveData.variableDebtTokenAddress
-      });
+      incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput(
+        uint128(variableDebtTokenEmission),
+        IERC20(reserveData.variableDebtTokenAddress).totalSupply(),
+        reserveData.variableDebtTokenAddress
+      );
       tokensCounter++;
     }
     // Transfer AAVE funds to the Incentives Controller
