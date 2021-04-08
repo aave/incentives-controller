@@ -22,6 +22,7 @@ import {
   AaveIncentivesControllerFactory,
   InitializableAdminUpgradeabilityProxyFactory,
 } from '../types';
+import { parse } from 'dotenv/types';
 
 const {
   RESERVES = 'USDT,USDC,DAI,WETH,WBTC,GUSD',
@@ -176,12 +177,7 @@ describe('Enable incentives in target assets', () => {
     )) as IERC20;
 
     // Transfer enough AAVE to proposer
-    await (
-      await aave.transfer(
-        proposer.address,
-        (await aave.balanceOf(AAVE_WHALE)).sub(parseEther('10000'))
-      )
-    ).wait();
+    await (await aave.transfer(proposer.address, parseEther('1000000'))).wait();
 
     // Transfer DAI to repay future DAI loan
     await (await dai.transfer(proposer.address, parseEther('10'))).wait();
