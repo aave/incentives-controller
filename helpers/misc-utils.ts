@@ -131,10 +131,9 @@ export const advanceBlockTo = async (target: number) => {
       console.log("advanceBlockTo: Advancing too many blocks is causing this test to be slow.'");
     }
     // eslint-disable-next-line no-await-in-loop
-    await advanceBlock();
+    await advanceBlock(0);
   }
 };
-
 
 export const impersonateAccountsHardhat = async (accounts: string[]) => {
   // eslint-disable-next-line no-restricted-syntax

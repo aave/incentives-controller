@@ -28,7 +28,7 @@ const MAINNET_FORK = process.env.MAINNET_FORK === 'true';
 
 // Prevent to load scripts before compilation and typechain
 if (!SKIP_LOAD) {
-  ['misc', 'payloads', 'migrations', 'deployment'].forEach((folder) => {
+  ['misc', /*'payloads',*/ 'migrations', 'deployment'].forEach((folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder);
     fs.readdirSync(tasksPath)
       .filter((pth) => pth.includes('.ts'))
