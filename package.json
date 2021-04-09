@@ -16,7 +16,7 @@
     "hardhat:docker": "hardhat --network hardhatevm_docker",
     "hardhat:mumbai": "hardhat --network mumbai",
     "hardhat:matic": "hardhat --network matic",
-    "test": "TS_NODE_TRANSPILE_ONLY=1 MAINNET_FORK=true hardhat test ./test-suite/*.spec.ts",
+    "test": "TS_NODE_TRANSPILE_ONLY=1 TENDERLY=true npx hardhat test --network tenderly ./test-suite/*.spec.ts",
     "compile": "SKIP_LOAD=true hardhat compile",
     "console:fork": "MAINNET_FORK=true hardhat console",
     "prepublishOnly": "npm run compile"
@@ -39,7 +39,7 @@
     "@nomiclabs/hardhat-ethers": "^2.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.0",
     "@openzeppelin/contracts": "3.1.0",
-    "@tenderly/hardhat-tenderly": "^1.1.0-beta.4",
+    "@tenderly/hardhat-tenderly": "^1.1.0-beta.5",
     "@typechain/ethers-v4": "1.0.0",
     "@typechain/ethers-v5": "^2.0.0",
     "@typechain/truffle-v4": "2.0.2",

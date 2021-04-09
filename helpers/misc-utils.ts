@@ -8,6 +8,8 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { tEthereumAddress } from './types';
 import { isAddress } from 'ethers/lib/utils';
 import { isZeroAddress } from 'ethereumjs-util';
+import { TenderlyNetwork } from '@tenderly/hardhat-tenderly/dist/TenderlyNetwork';
+import { setNewHead } from './tenderly-utils';
 
 export const toWad = (value: string | number) => new BigNumber(value).times(WAD).toFixed();
 
@@ -119,7 +121,22 @@ export const latestBlock = async () => DRE.ethers.provider.getBlockNumber();
 
 export const advanceBlockTo = async (target: number) => {
   const currentBlock = await latestBlock();
-  console.log('latest block: ', currentBlock);
+  if (process.env.TENDERLY === 'true') {
+    const pendingBlocks = target - currentBlock;
+    console.log('prior', currentBlock);
+
+    console.log(DRE.tenderly.network().getHead());
+
+    const response = await DRE.ethers.provider.send('evm_increaseBlocks', [`0x${pendingBlocks}`]);
+
+    console.log(DRE.tenderly.network().getHead());
+
+    // setNewHead(response);
+    const newbLock = await latestBlock();
+
+    console.log('newBlock', newbLock);
+    return;
+  }
   const start = Date.now();
   let notified;
   if (target < currentBlock)
@@ -136,6 +153,9 @@ export const advanceBlockTo = async (target: number) => {
 };
 
 export const impersonateAccountsHardhat = async (accounts: string[]) => {
+  if (process.env.TENDERLY === 'true') {
+    return;
+  }
   // eslint-disable-next-line no-restricted-syntax
   for (const account of accounts) {
     // eslint-disable-next-line no-await-in-loop

@@ -21,6 +21,8 @@ import { ILendingPool } from '../types/ILendingPool';
 import {
   AaveIncentivesControllerFactory,
   InitializableAdminUpgradeabilityProxyFactory,
+  ProposalIncentivesExecutorFactory,
+  SelfdestructTransferFactory,
 } from '../types';
 import { parse } from 'dotenv/types';
 
@@ -87,26 +89,19 @@ describe('Enable incentives in target assets', () => {
     [proposer, incentivesProxyAdmin] = await DRE.ethers.getSigners();
 
     // Deploy incentives implementation
-    const { address: incentivesImplementation } = await DRE.deployments.deploy(
-      'AaveIncentivesController',
-      {
-        from: proposer.address,
-        args: [AAVE_TOKEN, AAVE_STAKE, '0', AAVE_SHORT_EXECUTOR],
-      }
-    );
+    const { address: incentivesImplementation } = await new AaveIncentivesControllerFactory(
+      proposer
+    ).deploy(AAVE_TOKEN, AAVE_STAKE, '0', AAVE_SHORT_EXECUTOR);
+
     const incentivesInitParams = AaveIncentivesControllerFactory.connect(
       incentivesImplementation,
       proposer
     ).interface.encodeFunctionData('initialize', [ZERO_ADDRESS, '0', AAVE_SHORT_EXECUTOR]);
 
     // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
-    const { address: incentivesProxy } = await DRE.deployments.deploy(
-      'InitializableAdminUpgradeabilityProxy',
-      {
-        from: proposer.address,
-        args: [],
-      }
-    );
+    const { address: incentivesProxy } = await new InitializableAdminUpgradeabilityProxyFactory(
+      proposer
+    ).deploy();
 
     // Initialize proxy for incentives controller
     const incentivesProxyInstance = InitializableAdminUpgradeabilityProxyFactory.connect(
@@ -130,18 +125,12 @@ describe('Enable incentives in target assets', () => {
     });
 
     // Deploy Proposal Executor Payload
-    await DRE.deployments.deploy('ProposalIncentivesExecutor', {
-      from: proposer.address,
-      args: [],
-    });
+    const { address: proposalExecutionPayload } = await new ProposalIncentivesExecutorFactory(
+      proposer
+    ).deploy();
 
     // Send ether to the AAVE_WHALE, which is a non payable contract via selfdestruct
-    await DRE.deployments.deploy('SelfdestructTransfer', { from: proposer.address });
-    const selfDestructAddress = (await DRE.deployments.get('SelfdestructTransfer')).address;
-    const selfDestructContract = await ethers.getContractAt(
-      'SelfdestructTransfer',
-      selfDestructAddress
-    );
+    const selfDestructContract = await new SelfdestructTransferFactory(proposer).deploy();
     await (
       await selfDestructContract.destroyAndTransfer(AAVE_WHALE, {
         value: ethers.utils.parseEther('1'),
@@ -182,9 +171,13 @@ describe('Enable incentives in target assets', () => {
     // Transfer DAI to repay future DAI loan
     await (await dai.transfer(proposer.address, parseEther('10'))).wait();
 
+    // Mine block due flash loan voting protection
+    await advanceBlockTo((await latestBlock()) + 10);
+
     // Submit proposal
     proposalId = await gov.getProposalsCount();
     await DRE.run('propose-incentives', {
+      proposalExecutionPayload,
       incentivesProxy,
       aTokens: aTokens.join(','),
       variableDebtTokens: variableDebtTokens.join(','),
@@ -194,7 +187,7 @@ describe('Enable incentives in target assets', () => {
     });
 
     // Mine block due flash loan voting protection
-    await DRE.ethers.provider.send('evm_mine', [0]);
+    await advanceBlockTo((await latestBlock()) + 1);
 
     // Submit vote and advance block to Queue phase
     await (await gov.submitVote(proposalId, true)).wait();

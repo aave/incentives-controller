@@ -10,6 +10,7 @@ const bs58 = require('bs58');
 config();
 
 task('propose-incentives', 'Create some proposals and votes')
+  .addParam('proposalExecutionPayload')
   .addParam('incentivesProxy')
   .addParam('aTokens')
   .addParam('variableDebtTokens')
@@ -18,12 +19,18 @@ task('propose-incentives', 'Create some proposals and votes')
   .addParam('ipfsHash')
   .setAction(
     async (
-      { incentivesProxy, aTokens, variableDebtTokens, aaveGovernance, shortExecutor, ipfsHash },
+      {
+        incentivesProxy,
+        aTokens,
+        variableDebtTokens,
+        aaveGovernance,
+        shortExecutor,
+        ipfsHash,
+        proposalExecutionPayload,
+      },
       _DRE: any
     ) => {
       const proposer = (await _DRE.ethers.getSigners())[0];
-      const genericPayloadAddress = (await _DRE.deployments.get('ProposalIncentivesExecutor'))
-        .address;
 
       aTokens = aTokens.split(',');
       variableDebtTokens = variableDebtTokens.split(',');
@@ -41,7 +48,7 @@ task('propose-incentives', 'Create some proposals and votes')
       await (
         await gov.create(
           shortExecutor,
-          [genericPayloadAddress],
+          [proposalExecutionPayload],
           ['0'],
           [executeSignature],
           [callData],
