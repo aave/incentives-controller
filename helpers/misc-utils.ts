@@ -122,15 +122,17 @@ export const latestBlock = async () => DRE.ethers.provider.getBlockNumber();
 export const advanceBlockTo = async (target: number) => {
   const currentBlock = await latestBlock();
   if (process.env.TENDERLY === 'true') {
-    const pendingBlocks = target - currentBlock;
+    const pendingBlocks = target - currentBlock - 1;
+    console.log(pendingBlocks);
     console.log('prior', currentBlock);
 
     console.log(DRE.tenderly.network().getHead());
 
-    const response = await DRE.ethers.provider.send('evm_increaseBlocks', [`0x${pendingBlocks}`]);
+    const response = await DRE.ethers.provider.send('evm_increaseBlocks', [
+      `0x${pendingBlocks.toString(16)}`,
+    ]);
 
     console.log(DRE.tenderly.network().getHead());
-
     // setNewHead(response);
     const newbLock = await latestBlock();
 
