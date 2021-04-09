@@ -39,9 +39,6 @@ export const timeLatest = async () => {
   return new BigNumber(block.timestamp);
 };
 
-export const advanceBlock = async (timestamp?: number) =>
-  await DRE.ethers.provider.send('evm_mine', timestamp ? [timestamp] : []);
-
 export const increaseTime = async (secondsToIncrease: number) => {
   await DRE.ethers.provider.send('evm_increaseTime', [secondsToIncrease]);
   await DRE.ethers.provider.send('evm_mine', []);
@@ -119,6 +116,9 @@ export const notFalsyOrZeroAddress = (address: tEthereumAddress | null | undefin
 
 export const latestBlock = async () => DRE.ethers.provider.getBlockNumber();
 
+export const advanceBlock = async (timestamp: number) =>
+  await DRE.ethers.provider.send('evm_mine', [timestamp]);
+
 export const advanceBlockTo = async (target: number) => {
   const currentBlock = await latestBlock();
   if (process.env.TENDERLY === 'true') {
@@ -150,7 +150,7 @@ export const advanceBlockTo = async (target: number) => {
       console.log("advanceBlockTo: Advancing too many blocks is causing this test to be slow.'");
     }
     // eslint-disable-next-line no-await-in-loop
-    await advanceBlock();
+    await advanceBlock(0);
   }
 };
 

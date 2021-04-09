@@ -6,6 +6,12 @@ export interface SymbolMap<T> {
 
 export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork;
 
+
+export enum eContractid {
+  DistributionManager = 'DistributionManager',
+  AaveIncentivesController = 'AaveIncentivesController',
+}
+
 export enum eEthereumNetwork {
   buidlerevm = 'buidlerevm',
   kovan = 'kovan',
