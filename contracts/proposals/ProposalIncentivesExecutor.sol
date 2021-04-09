@@ -15,13 +15,13 @@ import {PercentageMath} from '../utils/PercentageMath.sol';
 
 contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   using PercentageMath for uint256;
-  // Reserves Order: USDT/USDC/DAI/WETH/WBTC/GUSD
-  address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
-  address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+  // Reserves Order: DAI/GUSD/USDC/USDT/WBTC/WETH
   address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-  address constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
   address constant GUSD = 0x056Fd409E1d7A124BD7017459dFEa2F387b6d5Cd;
+  address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+  address constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+  address constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
+  address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   address constant AAVE_TOKEN = 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9;
   address constant POOL_CONFIGURATOR = 0x311Bb771e4F8952E6Da169b425E7e92d6Ac45756;
@@ -29,7 +29,6 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   address constant LENDING_POOL = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
   address constant ECO_RESERVE_ADDRESS = 0x1E506cbb6721B83B1549fa1558332381Ffa61A93;
 
-  // TODO: Random constants below, pending revision
   uint256 constant DISTRIBUTION_DURATION = 7776000; // 90 days
   uint256 constant DISTRIBUTION_AMOUNT = 99000000000000000000000; // 99000 AAVE during 90 days
 
@@ -39,7 +38,7 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     address[6] memory variableDebtImplementation
   ) external override {
     uint256 tokensCounter;
-    address[6] memory reserves = [USDT, USDC, DAI, WETH, WBTC, GUSD];
+    address[6] memory reserves = [DAI, GUSD, USDC, USDT, WBTC, WETH];
     uint256 totalEmissionPerSecond = DISTRIBUTION_AMOUNT / DISTRIBUTION_DURATION;
     DistributionTypes.AssetConfigInput[] memory incentivicedTokens =
       new DistributionTypes.AssetConfigInput[](12);

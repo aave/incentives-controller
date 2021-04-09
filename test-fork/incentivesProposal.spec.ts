@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import rawHRE from 'hardhat';
 import { BigNumber } from 'ethers';
-import { parseEther } from 'ethers/lib/utils';
+import { formatEther, parseEther } from 'ethers/lib/utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { JsonRpcSigner } from '@ethersproject/providers';
 
@@ -20,9 +20,11 @@ import { IAaveGovernanceV2 } from '../types/IAaveGovernanceV2';
 import { ILendingPool } from '../types/ILendingPool';
 import {
   AaveIncentivesControllerFactory,
+  AToken,
   InitializableAdminUpgradeabilityProxyFactory,
 } from '../types';
 import { parse } from 'dotenv/types';
+import { tEthereumAddress } from '../helpers/types';
 
 const {
   RESERVES = 'USDT,USDC,DAI,WETH,WBTC,GUSD',
@@ -67,20 +69,24 @@ describe('Enable incentives in target assets', () => {
   let daiHolder: JsonRpcSigner;
   let proposer: SignerWithAddress;
   let incentivesProxyAdmin: SignerWithAddress;
+  let incentivesProxy: tEthereumAddress;
   let gov: IAaveGovernanceV2;
   let pool: ILendingPool;
   let aave: IERC20;
   let dai: IERC20;
-  let aDAI: IERC20;
+  let aDAI: AToken;
   let variableDebtDAI: IERC20;
   let snapshotId: string;
   let proposalId: BigNumber;
+  let aTokensImpl: tEthereumAddress[];
+  let variableDebtTokensImpl: tEthereumAddress[];
 
+  /*
   afterEach(async () => {
     evmRevert(snapshotId);
     snapshotId = await evmSnapshot();
   });
-
+*/
   before(async () => {
     await rawHRE.run('set-DRE');
     ethers = DRE.ethers;
@@ -91,7 +97,7 @@ describe('Enable incentives in target assets', () => {
       'AaveIncentivesController',
       {
         from: proposer.address,
-        args: [ AAVE_STAKE, AAVE_SHORT_EXECUTOR],
+        args: [AAVE_STAKE, AAVE_SHORT_EXECUTOR],
       }
     );
     const incentivesInitParams = AaveIncentivesControllerFactory.connect(
@@ -100,13 +106,14 @@ describe('Enable incentives in target assets', () => {
     ).interface.encodeFunctionData('initialize', []);
 
     // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
-    const { address: incentivesProxy } = await DRE.deployments.deploy(
+    const { address: incentivesProxyAddress } = await DRE.deployments.deploy(
       'InitializableAdminUpgradeabilityProxy',
       {
         from: proposer.address,
         args: [],
       }
     );
+    incentivesProxy = incentivesProxyAddress;
 
     // Initialize proxy for incentives controller
     const incentivesProxyInstance = InitializableAdminUpgradeabilityProxyFactory.connect(
@@ -128,6 +135,9 @@ describe('Enable incentives in target assets', () => {
       incentivesController: incentivesProxy,
       treasury: TREASURY,
     });
+
+    aTokensImpl = [...aTokens];
+    variableDebtTokensImpl = [...variableDebtTokens];
 
     // Deploy Proposal Executor Payload
     await DRE.deployments.deploy('ProposalIncentivesExecutor', {
@@ -165,6 +175,12 @@ describe('Enable incentives in target assets', () => {
       proposer
     )) as ILendingPool;
 
+    const {
+      configuration: { data },
+      aTokenAddress,
+      variableDebtTokenAddress,
+    } = await pool.getReserveData(DAI_TOKEN);
+
     aave = (await ethers.getContractAt(
       '@aave/aave-stake/contracts/interfaces/IERC20.sol:IERC20',
       AAVE_TOKEN,
@@ -175,19 +191,27 @@ describe('Enable incentives in target assets', () => {
       DAI_TOKEN,
       daiHolder
     )) as IERC20;
+    aDAI = (await ethers.getContractAt('AToken', aTokenAddress, proposer)) as AToken;
+    variableDebtDAI = (await ethers.getContractAt(
+      '@aave/aave-stake/contracts/interfaces/IERC20.sol:IERC20',
+      variableDebtTokenAddress,
+      proposer
+    )) as IERC20;
 
     // Transfer enough AAVE to proposer
     await (await aave.transfer(proposer.address, parseEther('1000000'))).wait();
 
     // Transfer DAI to repay future DAI loan
-    await (await dai.transfer(proposer.address, parseEther('10'))).wait();
+    await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
+  });
 
+  it('Proposal should be created', async () => {
     // Submit proposal
     proposalId = await gov.getProposalsCount();
     await DRE.run('propose-incentives', {
       incentivesProxy,
-      aTokens: aTokens.join(','),
-      variableDebtTokens: variableDebtTokens.join(','),
+      aTokens: aTokensImpl.join(','),
+      variableDebtTokens: variableDebtTokensImpl.join(','),
       aaveGovernance: AAVE_GOVERNANCE_V2,
       shortExecutor: AAVE_SHORT_EXECUTOR,
       ipfsHash: IPFS_HASH,
@@ -199,23 +223,69 @@ describe('Enable incentives in target assets', () => {
     // Submit vote and advance block to Queue phase
     await (await gov.submitVote(proposalId, true)).wait();
     await advanceBlockTo((await latestBlock()) + VOTING_DURATION + 1);
-
+  });
+  it('Proposal should be queued', async () => {
     // Queue and advance block to Execution phase
     await (await gov.queue(proposalId)).wait();
     let proposalState = await gov.getProposalState(proposalId);
     expect(proposalState).to.be.equal(5);
 
     await increaseTime(86400 + 10);
-    snapshotId = await evmSnapshot();
   });
 
-  it('Should activate incentives to selected reserves', async () => {
+  it('Proposal should be executed', async () => {
     // Execute payload
     await (await gov.execute(proposalId)).wait();
     console.log('Proposal executed');
 
     const proposalState = await gov.getProposalState(proposalId);
     expect(proposalState).to.be.equal(7);
+  });
+
+  it('Users should be able to deposit DAI at Lending Pool', async () => {
+    // Deposit DAI to LendingPool
+    await (await dai.connect(proposer).approve(pool.address, parseEther('2000'))).wait();
+
+    const tx = await pool.deposit(dai.address, parseEther('100'), proposer.address, 0);
+    expect(tx).to.emit(pool, 'Deposit');
+    expect(await aDAI.balanceOf(proposer.address)).to.be.gte(parseEther('100'));
+  });
+  it('Users should be able to request DAI loan from Lending Pool', async () => {
+    // Request DAI loan to LendingPool
+    const tx = await pool.borrow(dai.address, parseEther('1'), '2', '0', proposer.address);
+    expect(tx).to.emit(pool, 'Borrow');
+    expect(await variableDebtDAI.balanceOf(proposer.address)).to.be.eq(parseEther('1'));
+  });
+  it('Users should be able to repay DAI loan from Lending Pool', async () => {
+    const {
+      configuration: { data },
+      variableDebtTokenAddress,
+    } = await pool.getReserveData(DAI_TOKEN);
+
+    // Repay DAI variable loan to LendingPool
+    await (await dai.connect(proposer).approve(pool.address, MAX_UINT_AMOUNT)).wait();
+    const tx = await pool.repay(dai.address, MAX_UINT_AMOUNT, '2', proposer.address);
+    expect(tx).to.emit(pool, 'Repay');
+  });
+  it('Users should be able to withdraw DAI from Lending Pool', async () => {
+    const {
+      configuration: { data },
+      aTokenAddress,
+    } = await pool.getReserveData(DAI_TOKEN);
+
+    // Withdraw DAI from LendingPool
+    const priorDAIBalance = await dai.balanceOf(proposer.address);
+    await (await aDAI.connect(proposer).approve(pool.address, MAX_UINT_AMOUNT)).wait();
+    const tx = await pool.withdraw(dai.address, MAX_UINT_AMOUNT, proposer.address);
+    expect(tx).to.emit(pool, 'Withdraw');
+    const afterDAIBalance = await dai.balanceOf(proposer.address);
+    expect(await aDAI.balanceOf(proposer.address)).to.be.eq('0');
+    expect(afterDAIBalance).to.be.gt(priorDAIBalance);
+  });
+  xit('User should be use LendingPool with GUSD/USDC/USDT/WBTC/WETH');
+  xit('Check all aToken symbols matches', () => {});
+  xit('Check all variable debt symbols matches', () => {});
+  xit('Users should be able to claim incentives', async () => {
     const {
       configuration: { data },
       aTokenAddress,
@@ -223,23 +293,6 @@ describe('Enable incentives in target assets', () => {
       variableDebtTokenAddress,
     } = await pool.getReserveData(DAI_TOKEN);
 
-    aDAI = (await ethers.getContractAt(
-      '@aave/aave-stake/contracts/interfaces/IERC20.sol:IERC20',
-      aTokenAddress,
-      proposer
-    )) as IERC20;
-    variableDebtDAI = (await ethers.getContractAt(
-      '@aave/aave-stake/contracts/interfaces/IERC20.sol:IERC20',
-      variableDebtTokenAddress,
-      proposer
-    )) as IERC20;
-
-    /*
-    // Deposit DAI to LendingPool
-    await (await dai.connect(proposer).approve(pool.address, parseEther('2000'))).wait();
-    await (await pool.deposit(dai.address, parseEther('100'), proposer.address, 0)).wait();
-    expect(await aDAI.balanceOf(proposer.address)).to.be.equal(parseEther('100'));
-    */
     // Claim rewards TBD
   });
 });

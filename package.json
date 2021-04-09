@@ -16,8 +16,9 @@
     "hardhat:docker": "hardhat --network hardhatevm_docker",
     "hardhat:mumbai": "hardhat --network mumbai",
     "hardhat:matic": "hardhat --network matic",
+    "test": "npm run test-incentives",
     "test-incentives": "TS_NODE_TRANSPILE_ONLY=1 hardhat test ./test/__setup.spec.ts ./test/AaveIncentivesController/*.spec.ts",
-    "test-proposal": "TS_NODE_TRANSPILE_ONLY=1 MAINNET_FORK=true hardhat test ./test-suite/*.spec.ts",
+    "test-proposal": "TS_NODE_TRANSPILE_ONLY=1 MAINNET_FORK=true hardhat test ./test-fork/*.spec.ts",
     "compile": "SKIP_LOAD=true hardhat compile",
     "console:fork": "MAINNET_FORK=true hardhat console",
     "prepublishOnly": "npm run compile"

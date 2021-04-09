@@ -30,9 +30,9 @@ task(
     // Params
     const pool = await poolProvider.getLendingPool();
 
-    const reserveConfigs = (
-      await protocolDataProvider.getAllReservesTokens()
-    ).filter(({ symbol }) => tokensToUpdate.includes(symbol));
+    const reserveConfigs = (await protocolDataProvider.getAllReservesTokens())
+      .filter(({ symbol }) => tokensToUpdate.includes(symbol))
+      .sort(({ symbol: a }, { symbol: b }) => a.localeCompare(b));
 
     if (reserveConfigs.length != tokensToUpdate.length) {
       throw Error(
