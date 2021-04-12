@@ -565,8 +565,6 @@ describe('Enable incentives in target assets', () => {
         await pool.connect(proposer).deposit(reserve.address, depositAmount, proposer.address, 0)
       ).wait();
 
-      console.log('Gas used: ', depositTx.gasUsed.toString(), ' for token ', symbol);
-
       await increaseTime(1296000);
 
       const priorBalance = await stkAave.balanceOf(proposer.address);
