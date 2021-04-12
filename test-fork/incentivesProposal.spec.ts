@@ -35,6 +35,8 @@ import { IERC20Factory } from '../types/IERC20Factory';
 import { IATokenFactory } from '../types/IATokenFactory';
 import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
 import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
+import { IERC20Detailed } from '../types/IERC20Detailed';
+import { IERC20DetailedFactory } from '../types/IERC20DetailedFactory';
 
 const {
   RESERVES = 'DAI,GUSD,USDC,USDT,WBTC,WETH',
@@ -131,12 +133,18 @@ describe('Enable incentives in target assets', () => {
   let aTokensImpl: tEthereumAddress[];
   let variableDebtTokensImpl: tEthereumAddress[];
   let proposalExecutionPayload: tEthereumAddress;
+  let symbols: {
+    [key: string]: {
+      aToken: { symbol: string; name: string };
+      variableDebtToken: { symbol: string; name: string };
+    };
+  } = {};
   /*
-  afterEach(async () => {
-    evmRevert(snapshotId);
-    snapshotId = await evmSnapshot();
-  });
-*/
+    afterEach(async () => {
+      evmRevert(snapshotId);
+      snapshotId = await evmSnapshot();
+    });
+  */
   before(async () => {
     await rawHRE.run('set-DRE');
     ethers = DRE.ethers;
@@ -239,6 +247,42 @@ describe('Enable incentives in target assets', () => {
 
     // Transfer DAI to repay future DAI loan
     await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
+
+    // Save aToken and debt token names
+    const poolProvider = await ILendingPoolAddressesProviderFactory.connect(
+      POOL_PROVIDER,
+      proposer
+    );
+    const protocolDataProvider = await AaveProtocolDataProviderFactory.connect(
+      await poolProvider.getAddress(
+        '0x0100000000000000000000000000000000000000000000000000000000000000'
+      ),
+      proposer
+    );
+
+    const reserveConfigs = (await protocolDataProvider.getAllReservesTokens())
+      .filter(({ symbol }) => RESERVES.includes(symbol))
+      .sort(({ symbol: a }, { symbol: b }) => a.localeCompare(b));
+
+    for (let x = 0; x < reserveConfigs.length; x++) {
+      const { tokenAddress, symbol } = reserveConfigs[x];
+      const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(
+        reserveConfigs[x].tokenAddress
+      );
+      const aToken = IERC20DetailedFactory.connect(aTokenAddress, proposer);
+      const varDebtToken = IERC20DetailedFactory.connect(variableDebtTokenAddress, proposer);
+
+      symbols[symbol] = {
+        aToken: {
+          name: await aToken.name(),
+          symbol: await aToken.symbol(),
+        },
+        variableDebtToken: {
+          name: await varDebtToken.name(),
+          symbol: await varDebtToken.symbol(),
+        },
+      };
+    }
   });
 
   it('Proposal should be created', async () => {
@@ -393,7 +437,7 @@ describe('Enable incentives in target assets', () => {
       expect(afterBalance).to.be.gt(priorBalance);
     }
   });
-  xit('Check all aToken symbols and debt token matches', async () => {
+  it('Check all aToken symbols and debt token matches', async () => {
     const poolProvider = await ILendingPoolAddressesProviderFactory.connect(
       POOL_PROVIDER,
       proposer
@@ -409,22 +453,29 @@ describe('Enable incentives in target assets', () => {
       .filter(({ symbol }) => RESERVES.includes(symbol))
       .sort(({ symbol: a }, { symbol: b }) => a.localeCompare(b));
 
-    console.log('prior');
     for (let x = 0; x < reserveConfigs.length; x++) {
-      const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(DAI_TOKEN);
-      const { symbol, tokenAddress } = reserveConfigs[x];
-      const reserve = IERC20Factory.connect(tokenAddress, proposer);
-      const aToken = ATokenFactory.connect(aTokenAddress, proposer);
-      const varDebtToken = VariableDebtTokenFactory.connect(variableDebtTokenAddress, proposer);
+      const { tokenAddress, symbol } = reserveConfigs[x];
+      const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
+      const aToken = IERC20DetailedFactory.connect(aTokenAddress, proposer);
+      const varDebtToken = IERC20DetailedFactory.connect(variableDebtTokenAddress, proposer);
+
+      const aTokenDetails = {
+        name: await aToken.name(),
+        symbol: await aToken.symbol(),
+      };
+      const variableDebtTokenDetails = {
+        name: await varDebtToken.name(),
+        symbol: await varDebtToken.symbol(),
+      };
+
+      expect(aTokenDetails).to.be.deep.equal(symbols[symbol].aToken);
+      expect(variableDebtTokenDetails).to.be.deep.equal(symbols[symbol].variableDebtToken);
     }
   });
 
   it('Check emission rate', async () => {
     const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
-
-    //just multiplying 1(emissionPerSecond)numOfSeconds
     const tokenAddress = DAI_TOKEN;
-    const symbol = 'DAI';
     const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
     const reserve = IERC20Factory.connect(tokenAddress, proposer);
 
