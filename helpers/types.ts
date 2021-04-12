@@ -12,6 +12,7 @@ export enum eContractid {
   MintableErc20 = 'MintableErc20',
   ATokenMock = 'ATokenMock',
   IERC20Detailed = 'IERC20Detailed',
+  StakedTokenIncentivesController = 'StakedTokenIncentivesController',
 }
 
 export enum eEthereumNetwork {

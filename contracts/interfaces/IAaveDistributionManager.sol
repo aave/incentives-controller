@@ -8,7 +8,7 @@ interface IAaveDistributionManager {
   
   event AssetConfigUpdated(address indexed asset, uint256 emission);
   event AssetIndexUpdated(address indexed asset, uint256 index);
-  event UserIndexUpdated(address indexed user, address indexed asset);
+  event UserIndexUpdated(address indexed user, address indexed asset, uint256 index);
   event DistributionEndUpdated(uint256 newDistributionEnd);
 
   /**
@@ -29,4 +29,19 @@ interface IAaveDistributionManager {
   * @return The end of the distribution
   **/
   function getDistributionEnd() external view returns (uint256);
+
+  /**
+  * @dev for backwards compatibility with the previous DistributionManager used
+  * @return The end of the distribution
+  **/
+  function DISTRIBUTION_END() external view returns(uint256);
+
+   /**
+   * @dev Returns the data of an user on a distribution
+   * @param user Address of the user
+   * @param asset The address of the reference asset of the distribution
+   * @return The new index
+   **/
+   function getUserAssetData(address user, address asset) external view returns (uint256);
+
 }

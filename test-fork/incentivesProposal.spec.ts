@@ -19,7 +19,7 @@ import { IERC20 } from '../types/IERC20';
 import { IAaveGovernanceV2 } from '../types/IAaveGovernanceV2';
 import { ILendingPool } from '../types/ILendingPool';
 import {
-  AaveIncentivesControllerFactory,
+  StakedTokenIncentivesControllerFactory,
   AaveProtocolDataProviderFactory,
   AToken,
   ATokenFactory,
@@ -144,13 +144,13 @@ describe('Enable incentives in target assets', () => {
 
     // Deploy incentives implementation
     const { address: incentivesImplementation } = await DRE.deployments.deploy(
-      'AaveIncentivesController',
+      'StakedTokenIncentivesController',
       {
         from: proposer.address,
         args: [AAVE_STAKE, AAVE_SHORT_EXECUTOR],
       }
     );
-    const incentivesInitParams = AaveIncentivesControllerFactory.connect(
+    const incentivesInitParams = StakedTokenIncentivesControllerFactory.connect(
       incentivesImplementation,
       proposer
     ).interface.encodeFunctionData('initialize');
@@ -420,7 +420,7 @@ describe('Enable incentives in target assets', () => {
   });
 
   it('Check emission rate', async () => {
-    const incentives = AaveIncentivesControllerFactory.connect(incentivesProxy, proposer);
+    const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
 
     //just multiplying 1(emissionPerSecond)numOfSeconds
     const tokenAddress = DAI_TOKEN;
@@ -481,7 +481,7 @@ describe('Enable incentives in target assets', () => {
 
   it('Users should be able to claim incentives', async () => {
     // Initialize proxy for incentives controller
-    const incentives = AaveIncentivesControllerFactory.connect(incentivesProxy, proposer);
+    const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
     const poolProvider = await ILendingPoolAddressesProviderFactory.connect(
       POOL_PROVIDER,
       proposer
@@ -510,9 +510,12 @@ describe('Enable incentives in target assets', () => {
       // Deposit to LendingPool
       await (await reserve.connect(proposer).approve(pool.address, '0')).wait();
       await (await reserve.connect(proposer).approve(pool.address, depositAmount)).wait();
-      await (
+      const depositTx = await (
         await pool.connect(proposer).deposit(reserve.address, depositAmount, proposer.address, 0)
       ).wait();
+
+      console.log('Gas used: ', depositTx.gasUsed.toString(), ' for token ', symbol);
+
       await increaseTime(1296000);
 
       const priorBalance = await stkAave.balanceOf(proposer.address);

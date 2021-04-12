@@ -85,4 +85,9 @@ interface IAaveIncentivesController is IAaveDistributionManager {
    * @return The claimer address
    */
   function getClaimer(address user) external view returns (address);
+
+  /**
+  * @dev for backward compatibility with previous implementation of the Incentives controller
+  */
+  function REWARD_TOKEN() external view returns (address);
 }

@@ -51,6 +51,16 @@ contract AaveDistributionManager is IAaveDistributionManager {
   }
 
   /// @inheritdoc IAaveDistributionManager
+  function DISTRIBUTION_END() external override view returns (uint256) {
+    return _distributionEnd;
+  }
+
+  /// @inheritdoc IAaveDistributionManager
+  function getUserAssetData(address user, address asset) public override view returns (uint256) {
+    return assets[asset].users[user];
+  }
+
+  /// @inheritdoc IAaveDistributionManager
   function configureAssets(DistributionTypes.AssetConfigInput[] calldata assetsConfigInput)
     external
     override
@@ -138,7 +148,7 @@ contract AaveDistributionManager is IAaveDistributionManager {
       }
 
       assetData.users[user] = newIndex;
-      emit UserIndexUpdated(user, asset);
+      emit UserIndexUpdated(user, asset, newIndex);
     }
 
     return accruedRewards;
@@ -247,15 +257,5 @@ contract AaveDistributionManager is IAaveDistributionManager {
       emissionPerSecond.mul(timeDelta).mul(10**uint256(PRECISION)).div(totalBalance).add(
         currentIndex
       );
-  }
-
-  /**
-   * @dev Returns the data of an user on a distribution
-   * @param user Address of the user
-   * @param asset The address of the reference asset of the distribution
-   * @return The new index
-   **/
-  function getUserAssetData(address user, address asset) public view returns (uint256) {
-    return assets[asset].users[user];
   }
 }
