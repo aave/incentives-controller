@@ -2,18 +2,16 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
 import {SafeERC20} from '@aave/aave-stake/contracts/lib/SafeERC20.sol';
 import {SafeMath} from '../lib/SafeMath.sol';
-
-import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
-import {IAToken} from '@aave/aave-stake/contracts/interfaces/IAToken.sol';
+import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {VersionedInitializable} from '@aave/aave-stake/contracts/utils/VersionedInitializable.sol';
-import {IStakedTokenIncentivesController} from '../interfaces/IStakedTokenIncentivesController.sol';
-import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 import {AaveDistributionManager} from './AaveDistributionManager.sol';
 import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
-
+import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
+import {IScaledBalanceToken} from '../interfaces/IScaledBalanceToken.sol';
+import {IStakedTokenIncentivesController} from '../interfaces/IStakedTokenIncentivesController.sol';
+import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 
 /**
  * @title StakedTokenIncentivesController
@@ -29,7 +27,7 @@ contract StakedTokenIncentivesController is
 {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
-  
+
   uint256 public constant REVISION = 1;
 
   IStakedTokenWithConfig public immutable STAKE_TOKEN;
@@ -45,10 +43,9 @@ contract StakedTokenIncentivesController is
     _;
   }
 
-  constructor(
-    IStakedTokenWithConfig stakeToken,
-    address emissionManager
-  ) AaveDistributionManager(emissionManager) {
+  constructor(IStakedTokenWithConfig stakeToken, address emissionManager)
+    AaveDistributionManager(emissionManager)
+  {
     STAKE_TOKEN = stakeToken;
   }
 
@@ -58,6 +55,28 @@ contract StakedTokenIncentivesController is
   function initialize() external initializer {
     //approves the safety module to allow staking
     IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
+  }
+
+  /// @inheritdoc IStakedTokenIncentivesController
+  function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
+    external
+    override
+    onlyEmissionManager
+  {
+    require(assets.length == emissionsPerSecond.length, 'INVALID_CONFIGURATION');
+
+    DistributionTypes.AssetConfigInput[] memory assetsConfig =
+      new DistributionTypes.AssetConfigInput[](assets.length);
+
+    for (uint256 i = 0; i < assets.length; i++) {
+      assetsConfig[i].underlyingAsset = assets[i];
+      assetsConfig[i].emissionPerSecond = uint104(emissionsPerSecond[i]);
+
+      require(assetsConfig[i].emissionPerSecond == emissionsPerSecond[i], 'INVALID_CONFIGURATION');
+
+      assetsConfig[i].totalStaked = IScaledBalanceToken(assets[i]).scaledTotalSupply();
+    }
+    _configureAssets(assetsConfig);
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -86,7 +105,7 @@ contract StakedTokenIncentivesController is
       new DistributionTypes.UserStakeInput[](assets.length);
     for (uint256 i = 0; i < assets.length; i++) {
       userState[i].underlyingAsset = assets[i];
-      (userState[i].stakedByUser, userState[i].totalStaked) = IAToken(assets[i])
+      (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceToken(assets[i])
         .getScaledUserBalanceAndSupply(user);
     }
     unclaimedRewards = unclaimedRewards.add(_getUnclaimedRewards(user, userState));
@@ -109,7 +128,7 @@ contract StakedTokenIncentivesController is
     uint256 amount,
     address user,
     address to
-  ) external override  onlyAuthorizedClaimers(msg.sender, user) returns (uint256) {
+  ) external override onlyAuthorizedClaimers(msg.sender, user) returns (uint256) {
     require(user != address(0), 'INVALID_USER_ADDRESS');
     require(to != address(0), 'INVALID_TO_ADDRESS');
     return _claimRewards(assets, amount, msg.sender, user, to);
@@ -122,17 +141,17 @@ contract StakedTokenIncentivesController is
   }
 
   /// @inheritdoc IStakedTokenIncentivesController
-  function getClaimer(address user) external override view returns (address) {
+  function getClaimer(address user) external view override returns (address) {
     return _authorizedClaimers[user];
   }
 
   /// @inheritdoc IAaveIncentivesController
-  function getUserUnclaimedRewards(address _user) external override view returns (uint256) {
+  function getUserUnclaimedRewards(address _user) external view override returns (uint256) {
     return _usersUnclaimedRewards[_user];
   }
 
   /// @inheritdoc IAaveIncentivesController
-  function REWARD_TOKEN() external override view returns (address) {
+  function REWARD_TOKEN() external view override returns (address) {
     return address(STAKE_TOKEN);
   }
 
@@ -166,7 +185,7 @@ contract StakedTokenIncentivesController is
       new DistributionTypes.UserStakeInput[](assets.length);
     for (uint256 i = 0; i < assets.length; i++) {
       userState[i].underlyingAsset = assets[i];
-      (userState[i].stakedByUser, userState[i].totalStaked) = IAToken(assets[i])
+      (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceToken(assets[i])
         .getScaledUserBalanceAndSupply(user);
     }
 
