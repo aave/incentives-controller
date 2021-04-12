@@ -33,6 +33,8 @@ import { tEthereumAddress } from '../helpers/types';
 import { ILendingPoolAddressesProviderFactory } from '../types/ILendingPoolAddressesProviderFactory';
 import { IERC20Factory } from '../types/IERC20Factory';
 import { IATokenFactory } from '../types/IATokenFactory';
+import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
+import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
 
 const {
   RESERVES = 'DAI,GUSD,USDC,USDT,WBTC,WETH',
@@ -416,6 +418,67 @@ describe('Enable incentives in target assets', () => {
       const varDebtToken = VariableDebtTokenFactory.connect(variableDebtTokenAddress, proposer);
     }
   });
+
+  it('Check emission rate', async () => {
+    const incentives = AaveIncentivesControllerFactory.connect(incentivesProxy, proposer);
+
+    //just multiplying 1(emissionPerSecond)numOfSeconds
+    const tokenAddress = DAI_TOKEN;
+    const symbol = 'DAI';
+    const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
+    const reserve = IERC20Factory.connect(tokenAddress, proposer);
+
+    // Amounts
+    const depositAmount = parseEther('10000');
+
+    // Deposit to LendingPool
+    await (await reserve.connect(proposer).approve(pool.address, '0')).wait();
+    await (await reserve.connect(proposer).approve(pool.address, depositAmount)).wait();
+    await (
+      await pool.connect(proposer).deposit(reserve.address, depositAmount, proposer.address, 0)
+    ).wait();
+
+    // Check unclaimed rewards before time travel and claim
+    const unclaimedRewardsBefore = await incentives.getRewardsBalance(
+      [aTokenAddress],
+      proposer.address
+    );
+
+    await increaseTime(86400);
+
+    const atokenBalance = await IATokenFactory.connect(aTokenAddress, proposer).scaledBalanceOf(
+      proposer.address
+    );
+    const priorStkBalance = await IERC20Factory.connect(stkAave.address, proposer).balanceOf(
+      proposer.address
+    );
+    const userIndexBefore = await getUserIndex(incentives, proposer.address, aTokenAddress);
+
+    // Claim after timetravel
+    const tx2 = await incentives
+      .connect(proposer)
+      .claimRewards([aTokenAddress], MAX_UINT_AMOUNT, proposer.address);
+
+    expect(tx2).to.emit(incentives, 'RewardsClaimed');
+    const afterStkBalance = await stkAave.balanceOf(proposer.address);
+    const claimed = afterStkBalance.sub(priorStkBalance);
+
+    const userIndexAfter = await getUserIndex(incentives, proposer.address, aTokenAddress);
+    const expectedAccruedRewards = getRewards(
+      atokenBalance,
+      userIndexAfter,
+      userIndexBefore
+    ).toString();
+
+    // Expected rewards by index + prior accrued rewards
+    const expectedClaimedRewards = BigNumber.from(expectedAccruedRewards).add(
+      unclaimedRewardsBefore
+    );
+
+    expect(afterStkBalance).to.be.gt(priorStkBalance);
+    expect(claimed).to.be.eq(expectedClaimedRewards);
+  });
+
   it('Users should be able to claim incentives', async () => {
     // Initialize proxy for incentives controller
     const incentives = AaveIncentivesControllerFactory.connect(incentivesProxy, proposer);
