@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/aave/incentives-proposal#readme",
   "devDependencies": {
+    "@aave/protocol-v2": "^1.0.2-fat.2",
     "@nomiclabs/buidler": "^1.4.7",
     "@nomiclabs/buidler-ethers": "2.0.0",
     "@nomiclabs/buidler-etherscan": "^2.1.0",
@@ -84,7 +85,6 @@
   "dependencies": {
     "@aave/aave-stake": "^1.0.4",
     "@aave/governance-v2": "^1.0.0",
-    "@aave/protocol-v2": "^1.0.2-fat.1",
     "hardhat-deploy": "^0.7.2"
   }
 }
