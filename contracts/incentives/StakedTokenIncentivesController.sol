@@ -3,11 +3,13 @@ pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
 import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
+import {SafeERC20} from '@aave/aave-stake/contracts/lib/SafeERC20.sol';
 import {SafeMath} from '../lib/SafeMath.sol';
 
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {IAToken} from '@aave/aave-stake/contracts/interfaces/IAToken.sol';
 import {VersionedInitializable} from '@aave/aave-stake/contracts/utils/VersionedInitializable.sol';
+import {IStakedTokenIncentivesController} from '../interfaces/IStakedTokenIncentivesController.sol';
 import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 import {AaveDistributionManager} from './AaveDistributionManager.sol';
 import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
@@ -17,15 +19,17 @@ import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
  * @title StakedTokenIncentivesController
  * @notice Distributor contract for rewards to the Aave protocol, using a staked token as rewards asset.
  * The contract stakes the rewards before redistributing them to the Aave protocol participants.
- * The reference staked token implementation 
+ * The reference staked token implementation is at https://github.com/aave/aave-stake-v2
  * @author Aave
  **/
 contract StakedTokenIncentivesController is
-  IAaveIncentivesController,
+  IStakedTokenIncentivesController,
   VersionedInitializable,
   AaveDistributionManager
 {
   using SafeMath for uint256;
+  using SafeERC20 for IERC20;
+  
   uint256 public constant REVISION = 1;
 
   IStakedTokenWithConfig public immutable STAKE_TOKEN;
@@ -36,8 +40,8 @@ contract StakedTokenIncentivesController is
   // useful for contracts that hold tokens to be rewarded but don't have any native logic to claim Liquidity Mining rewards
   mapping(address => address) internal _authorizedClaimers;
 
-  modifier onlyAuthorizedClaimers(address user, address caller) {
-    require(_authorizedClaimers[user] == caller, 'CLAIMER_UNAUTHORIZED');
+  modifier onlyAuthorizedClaimers(address claimer, address user) {
+    require(_authorizedClaimers[user] == claimer, 'CLAIMER_UNAUTHORIZED');
     _;
   }
 
@@ -49,11 +53,11 @@ contract StakedTokenIncentivesController is
   }
 
   /**
-   * @dev Initialize AaveIncentivesController
+   * @dev Initialize IStakedTokenIncentivesController
    **/
   function initialize() external initializer {
     //approves the safety module to allow staking
-    IERC20(STAKE_TOKEN.STAKED_TOKEN()).approve(address(STAKE_TOKEN), type(uint256).max);
+    IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -95,6 +99,7 @@ contract StakedTokenIncentivesController is
     uint256 amount,
     address to
   ) external override returns (uint256) {
+    require(to != address(0), 'INVALID_TO_ADDRESS');
     return _claimRewards(assets, amount, msg.sender, msg.sender, to);
   }
 
@@ -105,16 +110,18 @@ contract StakedTokenIncentivesController is
     address user,
     address to
   ) external override  onlyAuthorizedClaimers(msg.sender, user) returns (uint256) {
+    require(user != address(0), 'INVALID_USER_ADDRESS');
+    require(to != address(0), 'INVALID_TO_ADDRESS');
     return _claimRewards(assets, amount, msg.sender, user, to);
   }
 
-  /// @inheritdoc IAaveIncentivesController
+  /// @inheritdoc IStakedTokenIncentivesController
   function setClaimer(address user, address caller) external override onlyEmissionManager {
     _authorizedClaimers[user] = caller;
     emit ClaimerSet(user, caller);
   }
 
-  /// @inheritdoc IAaveIncentivesController
+  /// @inheritdoc IStakedTokenIncentivesController
   function getClaimer(address user) external override view returns (address) {
     return _authorizedClaimers[user];
   }

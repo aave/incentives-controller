@@ -14,7 +14,6 @@ interface IAaveIncentivesController is IAaveDistributionManager {
     address indexed claimer,
     uint256 amount
   );
-  event ClaimerSet(address indexed user, address indexed claimer);
 
   /**
    * @dev Called by the corresponding asset on any update that affects the rewards distribution
@@ -71,20 +70,6 @@ interface IAaveIncentivesController is IAaveDistributionManager {
    * @return the unclaimed user rewards
    */
   function getUserUnclaimedRewards(address user) external view returns (uint256);
-
-  /**
-   * @dev Whitelists an address to claim the rewards on behalf of another address
-   * @param user The address of the user
-   * @param claimer The address of the claimer
-   */
-  function setClaimer(address user, address claimer) external;
-
-  /**
-   * @dev Returns the whitelisted claimer for a certain address (0x0 if not set)
-   * @param user The address of the user
-   * @return The claimer address
-   */
-  function getClaimer(address user) external view returns (address);
 
   /**
   * @dev for backward compatibility with previous implementation of the Incentives controller
