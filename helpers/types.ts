@@ -9,7 +9,7 @@ export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork;
 
 export enum eContractid {
   DistributionManager = 'DistributionManager',
-  AaveIncentivesController = 'AaveIncentivesController',
+  StakedTokenIncentivesController = 'StakedTokenIncentivesController',
 }
 
 export enum eEthereumNetwork {

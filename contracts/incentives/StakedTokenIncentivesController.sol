@@ -14,11 +14,13 @@ import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
 
 
 /**
- * @title AaveIncentivesController
- * @notice Distributor contract for rewards to the Aave protocol
+ * @title StakedTokenIncentivesController
+ * @notice Distributor contract for rewards to the Aave protocol, using a staked token as rewards asset.
+ * The contract stakes the rewards before redistributing them to the Aave protocol participants.
+ * The reference staked token implementation 
  * @author Aave
  **/
-contract AaveIncentivesController is
+contract StakedTokenIncentivesController is
   IAaveIncentivesController,
   VersionedInitializable,
   AaveDistributionManager
@@ -26,9 +28,7 @@ contract AaveIncentivesController is
   using SafeMath for uint256;
   uint256 public constant REVISION = 1;
 
-  IStakedTokenWithConfig public immutable _safetyModule;
-
-  address internal _rewardsVault;
+  IStakedTokenWithConfig public immutable STAKE_TOKEN;
 
   mapping(address => uint256) internal _usersUnclaimedRewards;
 
@@ -42,10 +42,10 @@ contract AaveIncentivesController is
   }
 
   constructor(
-    IStakedTokenWithConfig safetyModule,
+    IStakedTokenWithConfig stakeToken,
     address emissionManager
   ) AaveDistributionManager(emissionManager) {
-    _safetyModule = safetyModule;
+    STAKE_TOKEN = stakeToken;
   }
 
   /**
@@ -53,7 +53,7 @@ contract AaveIncentivesController is
    **/
   function initialize() external initializer {
     //approves the safety module to allow staking
-    IERC20(_safetyModule.STAKED_TOKEN()).approve(address(_safetyModule), type(uint256).max);
+    IERC20(STAKE_TOKEN.STAKED_TOKEN()).approve(address(STAKE_TOKEN), type(uint256).max);
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -124,6 +124,11 @@ contract AaveIncentivesController is
     return _usersUnclaimedRewards[_user];
   }
 
+  /// @inheritdoc IAaveIncentivesController
+  function REWARD_TOKEN() external override view returns (address) {
+    return address(STAKE_TOKEN);
+  }
+
   /**
    * @dev returns the revision of the implementation contract
    */
@@ -171,7 +176,7 @@ contract AaveIncentivesController is
     uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
     _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
 
-    _safetyModule.stake(to, amountToClaim);
+    STAKE_TOKEN.stake(to, amountToClaim);
     emit RewardsClaimed(user, to, claimer, amountToClaim);
 
     return amountToClaim;
