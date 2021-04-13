@@ -5,7 +5,12 @@ import { initializeMakeSuite } from './helpers/make-suite';
 import { deployMintableErc20, deployATokenMock } from '../helpers/contracts-accessors';
 import { waitForTx } from '../helpers/misc-utils';
 import { MintableErc20 } from '../types/MintableErc20';
-import { testDeployAaveStakeV2, testDeployAaveStakeV1 } from './helpers/deploy';
+import { testDeployIncentivesController } from './helpers/deploy';
+import {
+  StakedAaveV3,
+  StakedAaveV3Factory,
+  StakedTokenIncentivesControllerFactory,
+} from '../types';
 
 const topUpWalletsWithAave = async (
   wallets: Signer[],
@@ -17,46 +22,53 @@ const topUpWalletsWithAave = async (
   }
 };
 
-const buildTestEnv = async (deployer: Signer, vaultOfRewards: Signer, restWallets: Signer[]) => {
+const buildTestEnv = async (
+  deployer: Signer,
+  vaultOfRewards: Signer,
+  proxyAdmin: Signer,
+  restWallets: Signer[]
+) => {
   console.time('setup');
 
   const aaveToken = await deployMintableErc20(['Aave', 'aave', 18]);
 
   await waitForTx(await aaveToken.connect(vaultOfRewards).mint(ethers.utils.parseEther('1000000')));
   await topUpWalletsWithAave(
-    [
-      restWallets[0],
-      restWallets[1],
-      restWallets[2],
-      restWallets[3],
-      restWallets[4],
-      restWallets[5],
-    ],
+    [restWallets[0], restWallets[1], restWallets[2], restWallets[3], restWallets[4]],
     aaveToken,
     ethers.utils.parseEther('100').toString()
   );
 
-  await testDeployAaveStakeV2(aaveToken, deployer, vaultOfRewards, restWallets);
-
-  const { aaveIncentivesControllerProxy } = await testDeployAaveStakeV1(
-    aaveToken,
-    deployer,
+  const { incentivesProxy, stakeProxy } = await testDeployIncentivesController(
     vaultOfRewards,
-    restWallets
+    proxyAdmin,
+    aaveToken
   );
-
-  await deployATokenMock(aaveIncentivesControllerProxy.address, 'aDai');
-  await deployATokenMock(aaveIncentivesControllerProxy.address, 'aWeth');
+  await deployATokenMock(incentivesProxy.address, 'aDai');
+  await deployATokenMock(incentivesProxy.address, 'aWeth');
 
   console.timeEnd('setup');
+
+  return {
+    aaveToken,
+    incentivesController: StakedTokenIncentivesControllerFactory.connect(
+      incentivesProxy.address,
+      deployer
+    ),
+    aaveStake: StakedAaveV3Factory.connect(stakeProxy.address, deployer),
+  };
 };
 
 before(async () => {
   await rawBRE.run('set-DRE');
-  const [deployer, rewardsVault, ...restWallets] = await getEthersSigners();
-  console.log('-> Deploying test environment...');
-  await buildTestEnv(deployer, rewardsVault, restWallets);
-  await initializeMakeSuite();
+  const [deployer, proxyAdmin, ...restWallets] = await getEthersSigners();
+  const { aaveToken, aaveStake, incentivesController } = await buildTestEnv(
+    deployer,
+    deployer,
+    proxyAdmin,
+    restWallets
+  );
+  await initializeMakeSuite(aaveToken, aaveStake, incentivesController);
   console.log('\n***************');
   console.log('Setup and snapshot finished');
   console.log('***************\n');

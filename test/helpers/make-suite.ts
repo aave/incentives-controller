@@ -6,18 +6,10 @@ import { tEthereumAddress } from '../../helpers/types';
 import chai from 'chai';
 // @ts-ignore
 import bignumberChai from 'chai-bignumber';
-import { StakedAave } from '../../types/StakedAave';
-import {
-  getAaveIncentivesController,
-  getATokenMock,
-  getMintableErc20,
-  getStakedAave,
-  getStakedAaveV2,
-} from '../../helpers/contracts-accessors';
-import { AaveIncentivesController } from '../../types/AaveIncentivesController';
+import { getATokenMock } from '../../helpers/contracts-accessors';
 import { MintableErc20 } from '../../types/MintableErc20';
 import { ATokenMock } from '../../types/ATokenMock';
-import { StakedAaveV2 } from '../../types/StakedAaveV2';
+import { StakedAaveV3, StakedTokenIncentivesController } from '../../types';
 
 chai.use(bignumberChai());
 
@@ -31,13 +23,12 @@ export interface SignerWithAddress {
   address: tEthereumAddress;
 }
 export interface TestEnv {
-  stakedAaveV2: StakedAaveV2;
   rewardsVault: SignerWithAddress;
   deployer: SignerWithAddress;
   users: SignerWithAddress[];
   aaveToken: MintableErc20;
-  aaveIncentivesController: AaveIncentivesController;
-  stakedAave: StakedAave;
+  aaveIncentivesController: StakedTokenIncentivesController;
+  stakedAave: StakedAaveV3;
   aDaiMock: ATokenMock;
   aWethMock: ATokenMock;
 }
@@ -53,23 +44,26 @@ const testEnv: TestEnv = {
   deployer: {} as SignerWithAddress,
   users: [] as SignerWithAddress[],
   aaveToken: {} as MintableErc20,
-  stakedAave: {} as StakedAave,
-  stakedAaveV2: {} as StakedAaveV2,
-  aaveIncentivesController: {} as AaveIncentivesController,
+  stakedAave: {} as StakedAaveV3,
+  aaveIncentivesController: {} as StakedTokenIncentivesController,
   aDaiMock: {} as ATokenMock,
   aWethMock: {} as ATokenMock,
 } as TestEnv;
 
-export async function initializeMakeSuite() {
-  const [_deployer, _rewardsVault, ...restSigners] = await getEthersSigners();
+export async function initializeMakeSuite(
+  aaveToken: MintableErc20,
+  stakedAave: StakedAaveV3,
+  aaveIncentivesController: StakedTokenIncentivesController
+) {
+  const [_deployer, _proxyAdmin, ...restSigners] = await getEthersSigners();
   const deployer: SignerWithAddress = {
     address: await _deployer.getAddress(),
     signer: _deployer,
   };
 
   const rewardsVault: SignerWithAddress = {
-    address: await _rewardsVault.getAddress(),
-    signer: _rewardsVault,
+    address: await _deployer.getAddress(),
+    signer: _deployer,
   };
 
   for (const signer of restSigners) {
@@ -80,10 +74,9 @@ export async function initializeMakeSuite() {
   }
   testEnv.deployer = deployer;
   testEnv.rewardsVault = rewardsVault;
-  testEnv.stakedAave = await getStakedAave();
-  testEnv.stakedAaveV2 = await getStakedAaveV2();
-  testEnv.aaveIncentivesController = await getAaveIncentivesController();
-  testEnv.aaveToken = await getMintableErc20();
+  testEnv.stakedAave = stakedAave;
+  testEnv.aaveIncentivesController = aaveIncentivesController;
+  testEnv.aaveToken = aaveToken;
   testEnv.aDaiMock = await getATokenMock({ slug: 'aDai' });
   testEnv.aWethMock = await getATokenMock({ slug: 'aWeth' });
 }

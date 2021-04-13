@@ -1,32 +1,23 @@
 import { Contract, Signer, utils, ethers, BigNumberish } from 'ethers';
 import { signTypedData_v4 } from 'eth-sig-util';
 import { fromRpcSig, ECDSASignature } from 'ethereumjs-util';
-import BigNumber from 'bignumber.js';
 import { getDb, DRE, waitForTx } from './misc-utils';
 import {
   tEthereumAddress,
   eContractid,
-  tStringTokenSmallUnits,
   eEthereumNetwork,
-  AavePools,
   iParamsPerNetwork,
-  iParamsPerPool,
   ePolygonNetwork,
   eXDaiNetwork,
   eNetwork,
-  iParamsPerNetworkAll,
   iEthereumParamsPerNetwork,
   iPolygonParamsPerNetwork,
   iXDaiParamsPerNetwork,
 } from './types';
-import { MintableERC20 } from '../types/MintableERC20';
 import { Artifact } from 'hardhat/types';
 import { Artifact as BuidlerArtifact } from '@nomiclabs/buidler/types';
 import { verifyContract } from './etherscan-verification';
-import { getIErc20Detailed } from './contracts-getters';
 import { usingTenderly } from './tenderly-utils';
-
-export type MockTokenMap = { [symbol: string]: MintableERC20 };
 
 export const registerContractInJsonDb = async (contractId: string, contractInstance: Contract) => {
   const currentNetwork = DRE.network.name;
@@ -50,6 +41,7 @@ export const registerContractInJsonDb = async (contractId: string, contractInsta
     })
     .write();
 };
+export const getFirstSigner = async () => (await DRE.ethers.getSigners())[0];
 
 export const insertContractAddressInDb = async (id: eContractid, address: tEthereumAddress) =>
   await getDb()
@@ -180,34 +172,6 @@ export const getParamPerNetwork = <T>(param: iParamsPerNetwork<T>, network: eNet
     case eXDaiNetwork.xdai:
       return xdai;
   }
-};
-
-export const getParamPerPool = <T>({ proto, amm, matic }: iParamsPerPool<T>, pool: AavePools) => {
-  switch (pool) {
-    case AavePools.proto:
-      return proto;
-    case AavePools.amm:
-      return amm;
-    case AavePools.matic:
-      return matic;
-    default:
-      return proto;
-  }
-};
-
-export const convertToCurrencyDecimals = async (tokenAddress: tEthereumAddress, amount: string) => {
-  const token = await getIErc20Detailed(tokenAddress);
-  let decimals = (await token.decimals()).toString();
-
-  return ethers.utils.parseUnits(amount, decimals);
-};
-
-export const convertToCurrencyUnits = async (tokenAddress: string, amount: string) => {
-  const token = await getIErc20Detailed(tokenAddress);
-  let decimals = new BigNumber(await token.decimals());
-  const currencyUnit = new BigNumber(10).pow(decimals);
-  const amountInCurrencyUnits = new BigNumber(amount).div(currencyUnit);
-  return amountInCurrencyUnits.toFixed();
 };
 
 export const getSignatureFromTypedData = (
