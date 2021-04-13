@@ -3,8 +3,8 @@ pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
 import {IAaveDistributionManager} from '../interfaces/IAaveDistributionManager.sol';
-import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
 import {SafeMath} from '../lib/SafeMath.sol';
+import {DistributionTypes} from '../lib/DistributionTypes.sol';
 
 /**
  * @title AaveDistributionManager
@@ -60,11 +60,12 @@ contract AaveDistributionManager is IAaveDistributionManager {
     return assets[asset].users[user];
   }
 
-  /// @inheritdoc IAaveDistributionManager
-  function configureAssets(DistributionTypes.AssetConfigInput[] calldata assetsConfigInput)
-    external
-    override
-    onlyEmissionManager
+  /**
+  * @dev Configure the assets for a specific emission
+  * @param assetsConfigInput The array of each asset configuration
+  **/
+  function _configureAssets(DistributionTypes.AssetConfigInput[] memory assetsConfigInput)
+    internal
   {
 
     for (uint256 i = 0; i < assetsConfigInput.length; i++) {
@@ -76,7 +77,7 @@ contract AaveDistributionManager is IAaveDistributionManager {
         assetsConfigInput[i].totalStaked
       );
 
-      assetConfig.emissionPerSecond = uint104(assetsConfigInput[i].emissionPerSecond);
+      assetConfig.emissionPerSecond = assetsConfigInput[i].emissionPerSecond;
 
       emit AssetConfigUpdated(
         assetsConfigInput[i].underlyingAsset,

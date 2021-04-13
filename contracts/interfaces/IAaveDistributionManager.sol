@@ -2,7 +2,7 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
+import {DistributionTypes} from '../lib/DistributionTypes.sol';
 
 interface IAaveDistributionManager {
   
@@ -10,13 +10,6 @@ interface IAaveDistributionManager {
   event AssetIndexUpdated(address indexed asset, uint256 index);
   event UserIndexUpdated(address indexed user, address indexed asset, uint256 index);
   event DistributionEndUpdated(uint256 newDistributionEnd);
-
-  /**
-  * @dev Configure the assets for a specific emission
-  * @param assetsConfigInput The array of each asset configuration
-  **/
-  function configureAssets(DistributionTypes.AssetConfigInput[] calldata assetsConfigInput)
-    external;
 
   /**
   * @dev Sets the end date for the distribution

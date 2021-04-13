@@ -5,9 +5,17 @@ pragma experimental ABIEncoderV2;
 import {IAaveIncentivesController} from './IAaveIncentivesController.sol';
 
 interface IStakedTokenIncentivesController is IAaveIncentivesController {
-  
-   event ClaimerSet(address indexed user, address indexed claimer);
- 
+  event ClaimerSet(address indexed user, address indexed claimer);
+
+  /**
+   * @dev Configure assets for a certain rewards emission. Only tokens that are compatible with
+   * the IStakedToken interface (ATokens and Variable debt tokens) can be incentivized
+   * @param assets The assets to incentivize
+   * @param emissionsPerSecond The emission for each asset
+   */
+  function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
+    external;
+
   /**
    * @dev Whitelists an address to claim the rewards on behalf of another address
    * @param user The address of the user

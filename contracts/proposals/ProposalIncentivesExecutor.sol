@@ -5,10 +5,10 @@ pragma abicoder v2;
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {ILendingPoolAddressesProvider} from '../interfaces/ILendingPoolAddressesProvider.sol';
 import {ILendingPoolConfigurator} from '../interfaces/ILendingPoolConfigurator.sol';
-import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
+import {IStakedTokenIncentivesController} from '../interfaces/IStakedTokenIncentivesController.sol';
 import {IAaveEcosystemReserveController} from '../interfaces/IAaveEcosystemReserveController.sol';
 import {IProposalIncentivesExecutor} from '../interfaces/IProposalIncentivesExecutor.sol';
-import {DistributionTypes} from '@aave/aave-stake/contracts/lib/DistributionTypes.sol';
+import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {DataTypes} from '../utils/DataTypes.sol';
 import {ILendingPoolData} from '../interfaces/ILendingPoolData.sol';
 import {PercentageMath} from '../utils/PercentageMath.sol';
@@ -32,6 +32,9 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   uint256 constant DISTRIBUTION_DURATION = 7776000; // 90 days
   uint256 constant DISTRIBUTION_AMOUNT = 99000000000000000000000; // 99000 AAVE during 90 days
 
+  uint256 constant TOTAL_EMISSION_PER_SECOND = DISTRIBUTION_AMOUNT / DISTRIBUTION_DURATION;
+    
+
   function execute(
     address incentivesControllerAddress,
     address[6] memory aTokenImplementations,
@@ -39,34 +42,35 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   ) external override {
     uint256 tokensCounter;
     address[6] memory reserves = [DAI, GUSD, USDC, USDT, WBTC, WETH];
-    uint256 totalEmissionPerSecond = DISTRIBUTION_AMOUNT / DISTRIBUTION_DURATION;
-    DistributionTypes.AssetConfigInput[] memory incentivicedTokens =
-      new DistributionTypes.AssetConfigInput[](12);
+    
+    address[] memory assets = new address[](12);
+    uint256[] memory emissions = new uint256[](12);
+
     ILendingPoolConfigurator poolConfigurator = ILendingPoolConfigurator(POOL_CONFIGURATOR);
-    IAaveIncentivesController incentivesController =
-      IAaveIncentivesController(incentivesControllerAddress);
+    IStakedTokenIncentivesController incentivesController =
+      IStakedTokenIncentivesController(incentivesControllerAddress);
     IAaveEcosystemReserveController ecosystemReserveController =
       IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS);
 
     require(
       aTokenImplementations.length == variableDebtImplementation.length &&
         aTokenImplementations.length == reserves.length,
-      'Array length missmatch'
+      'ARRAY_LENGTH_MISMATCH'
     );
 
     // Update each reserve AToken implementation, Debt implementation, and prepare incentives configuration input
-    for (uint256 x; x < reserves.length; x++) {
+    for (uint256 x = 0; x < reserves.length; x++) {
       DataTypes.ReserveData memory reserveData =
         ILendingPoolData(LENDING_POOL).getReserveData(reserves[x]);
 
       // AAVE Emission is splitted 50/50 between ATokens and Variable Debt Tokens
-      uint256 atokenEmission = totalEmissionPerSecond / 6 / 2;
-      uint256 variableDebtTokenEmission = totalEmissionPerSecond / 6 / 2;
+      uint256 atokenEmission = TOTAL_EMISSION_PER_SECOND / 6 / 2;
+      uint256 variableDebtTokenEmission = TOTAL_EMISSION_PER_SECOND / 6 / 2;
 
       // For WETH or WBTC assets, them is splitted 90% for ATokens and 10% for Variable Debt Tokens
       if (reserves[x] == WETH || reserves[x] == WBTC) {
-        atokenEmission = (totalEmissionPerSecond / 6).percentMul(9000) - 1;
-        variableDebtTokenEmission = (totalEmissionPerSecond / 6).percentMul(1000);
+        atokenEmission = (TOTAL_EMISSION_PER_SECOND / 6).percentMul(9000) - 1;
+        variableDebtTokenEmission = (TOTAL_EMISSION_PER_SECOND / 6).percentMul(1000);
       }
 
       // Update aToken impl
@@ -75,20 +79,16 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
       // Update variable debt impl
       poolConfigurator.updateVariableDebtToken(reserves[x], variableDebtImplementation[x]);
 
+      emissions[tokensCounter] = atokenEmission;
+      assets[tokensCounter] = reserveData.aTokenAddress;
+
       // Configure aToken at incentives controller
-      incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput(
-        uint128(atokenEmission),
-        IERC20(reserveData.aTokenAddress).totalSupply(),
-        reserveData.aTokenAddress
-      );
       tokensCounter++;
 
       // Configure variable debt token at incentives controller
-      incentivicedTokens[tokensCounter] = DistributionTypes.AssetConfigInput(
-        uint128(variableDebtTokenEmission),
-        IERC20(reserveData.variableDebtTokenAddress).totalSupply(),
-        reserveData.variableDebtTokenAddress
-      );
+      emissions[tokensCounter] = variableDebtTokenEmission;
+      assets[tokensCounter] = reserveData.variableDebtTokenAddress;
+    
       tokensCounter++;
     }
     // Transfer AAVE funds to the Incentives Controller
@@ -99,7 +99,7 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     );
 
     // Enable incentives in aTokens and Variable Debt tokens
-    incentivesController.configureAssets(incentivicedTokens);
+    incentivesController.configureAssets(assets, emissions);
 
     // Sets the end date for the distribution
     incentivesController.setDistributionEnd(block.timestamp + DISTRIBUTION_DURATION);
