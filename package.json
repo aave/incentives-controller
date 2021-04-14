@@ -10,7 +10,7 @@
     "run-env": "npm i && tail -f /dev/null",
     "hardhat": "hardhat",
     "hardhat:kovan": "hardhat --network kovan",
-    "hardhat:tenderly-main": "hardhat --network tenderlyMain",
+    "hardhat:tenderly": "hardhat --network tenderly",
     "hardhat:ropsten": "hardhat--network ropsten",
     "hardhat:main": "hardhat --network main",
     "hardhat:docker": "hardhat --network hardhatevm_docker",
@@ -19,7 +19,7 @@
     "test": "npm run test-incentives",
     "test-incentives": "TS_NODE_TRANSPILE_ONLY=1 hardhat test ./test/__setup.spec.ts ./test/AaveIncentivesController/*.spec.ts",
     "test-proposal": "TS_NODE_TRANSPILE_ONLY=1 MAINNET_FORK=true hardhat test ./test-fork/*.spec.ts",
-    "test-proposalL:tenderly": "TS_NODE_TRANSPILE_ONLY=1 TENDERLY=true hardhat test ./test-fork/*.spec.ts",
+    "test-proposal:tenderly": "TS_NODE_TRANSPILE_ONLY=1 TENDERLY=true npm run hardhat:tenderly -- test ./test-fork/*.spec.ts",
     "compile": "SKIP_LOAD=true hardhat compile",
     "console:fork": "MAINNET_FORK=true hardhat console",
     "prepublishOnly": "npm run compile"

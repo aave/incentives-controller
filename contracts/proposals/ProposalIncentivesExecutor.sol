@@ -12,9 +12,12 @@ import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {DataTypes} from '../utils/DataTypes.sol';
 import {ILendingPoolData} from '../interfaces/ILendingPoolData.sol';
 import {PercentageMath} from '../utils/PercentageMath.sol';
+import {SafeMath} from '../lib/SafeMath.sol';
 
 contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
+  using SafeMath for uint256;
   using PercentageMath for uint256;
+
   // Reserves Order: DAI/GUSD/USDC/USDT/WBTC/WETH
   address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
   address constant GUSD = 0x056Fd409E1d7A124BD7017459dFEa2F387b6d5Cd;
@@ -30,30 +33,42 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   address constant ECO_RESERVE_ADDRESS = 0x1E506cbb6721B83B1549fa1558332381Ffa61A93;
 
   uint256 constant DISTRIBUTION_DURATION = 7776000; // 90 days
-  uint256 constant DISTRIBUTION_AMOUNT = 99000000000000000000000; // 99000 AAVE during 90 days
+  uint256 constant DISTRIBUTION_AMOUNT = 198000000000000000000000; // 198000 AAVE during 90 days
 
   uint256 constant TOTAL_EMISSION_PER_SECOND = DISTRIBUTION_AMOUNT / DISTRIBUTION_DURATION;
-    
+
+  uint256 constant PERCENTAGE_LIQUIDITY = 5000; // 50% for liquidity incentives and 50% for borrowing incentives
+  uint256 constant PERCENTAGE_LIQUIDITY_WBTC_ETH = 9500; // 95% for liquidity incentives and 5% for borrowing incentives
+
+  // Percentage of the emision per asset
+  uint256 constant EMISSION_RATIO_DAI = 1340; // 13.40 %
+  uint256 constant EMISSION_RATIO_GUSD = 73; // 0.73 %
+  uint256 constant EMISSION_RATIO_USDC = 4156; // 41.57 %
+  uint256 constant EMISSION_RATIO_USDT = 2587; // 25.87 %
+  uint256 constant EMISSION_RATIO_WBTC = 825; // 8.25 %
+  uint256 constant EMISSION_RATIO_WETH = 1019; // 10.19 %
 
   function execute(
     address incentivesControllerAddress,
     address[6] memory aTokenImplementations,
-    address[6] memory variableDebtImplementation
+    address[6] memory variableDebtImplementations
   ) external override {
     uint256 tokensCounter;
     address[6] memory reserves = [DAI, GUSD, USDC, USDT, WBTC, WETH];
-    
+    uint256[6] memory emissionRatio =
+      [
+        EMISSION_RATIO_DAI,
+        EMISSION_RATIO_GUSD,
+        EMISSION_RATIO_USDC,
+        EMISSION_RATIO_USDT,
+        EMISSION_RATIO_WBTC,
+        EMISSION_RATIO_WETH
+      ];
     address[] memory assets = new address[](12);
     uint256[] memory emissions = new uint256[](12);
 
-    ILendingPoolConfigurator poolConfigurator = ILendingPoolConfigurator(POOL_CONFIGURATOR);
-    IStakedTokenIncentivesController incentivesController =
-      IStakedTokenIncentivesController(incentivesControllerAddress);
-    IAaveEcosystemReserveController ecosystemReserveController =
-      IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS);
-
     require(
-      aTokenImplementations.length == variableDebtImplementation.length &&
+      aTokenImplementations.length == variableDebtImplementations.length &&
         aTokenImplementations.length == reserves.length,
       'ARRAY_LENGTH_MISMATCH'
     );
@@ -62,24 +77,30 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     for (uint256 x = 0; x < reserves.length; x++) {
       DataTypes.ReserveData memory reserveData =
         ILendingPoolData(LENDING_POOL).getReserveData(reserves[x]);
-
+      uint256 tokenEmission = TOTAL_EMISSION_PER_SECOND.percentMul(emissionRatio[x]);
       // AAVE Emission is splitted 50/50 between ATokens and Variable Debt Tokens
-      uint256 atokenEmission = TOTAL_EMISSION_PER_SECOND / 6 / 2;
-      uint256 variableDebtTokenEmission = TOTAL_EMISSION_PER_SECOND / 6 / 2;
+      uint256 aTokenEmission = tokenEmission.percentMul(PERCENTAGE_LIQUIDITY);
+      uint256 variableDebtTokenEmission = tokenEmission.sub(aTokenEmission);
 
       // For WETH or WBTC assets, them is splitted 90% for ATokens and 10% for Variable Debt Tokens
       if (reserves[x] == WETH || reserves[x] == WBTC) {
-        atokenEmission = (TOTAL_EMISSION_PER_SECOND / 6).percentMul(9000) - 1;
-        variableDebtTokenEmission = (TOTAL_EMISSION_PER_SECOND / 6).percentMul(1000);
+        aTokenEmission = tokenEmission.percentMul(PERCENTAGE_LIQUIDITY_WBTC_ETH);
+        variableDebtTokenEmission = tokenEmission.sub(aTokenEmission);
       }
 
       // Update aToken impl
-      poolConfigurator.updateAToken(reserves[x], aTokenImplementations[x]);
+      ILendingPoolConfigurator(POOL_CONFIGURATOR).updateAToken(
+        reserves[x],
+        aTokenImplementations[x]
+      );
 
       // Update variable debt impl
-      poolConfigurator.updateVariableDebtToken(reserves[x], variableDebtImplementation[x]);
+      ILendingPoolConfigurator(POOL_CONFIGURATOR).updateVariableDebtToken(
+        reserves[x],
+        variableDebtImplementations[x]
+      );
 
-      emissions[tokensCounter] = atokenEmission;
+      emissions[tokensCounter] = aTokenEmission;
       assets[tokensCounter] = reserveData.aTokenAddress;
 
       // Configure aToken at incentives controller
@@ -88,20 +109,25 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
       // Configure variable debt token at incentives controller
       emissions[tokensCounter] = variableDebtTokenEmission;
       assets[tokensCounter] = reserveData.variableDebtTokenAddress;
-    
+
       tokensCounter++;
     }
     // Transfer AAVE funds to the Incentives Controller
-    ecosystemReserveController.transfer(
+    IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS).transfer(
       AAVE_TOKEN,
       incentivesControllerAddress,
       DISTRIBUTION_AMOUNT
     );
 
     // Enable incentives in aTokens and Variable Debt tokens
-    incentivesController.configureAssets(assets, emissions);
+    IStakedTokenIncentivesController(incentivesControllerAddress).configureAssets(
+      assets,
+      emissions
+    );
 
     // Sets the end date for the distribution
-    incentivesController.setDistributionEnd(block.timestamp + DISTRIBUTION_DURATION);
+    IStakedTokenIncentivesController(incentivesControllerAddress).setDistributionEnd(
+      block.timestamp + DISTRIBUTION_DURATION
+    );
   }
 }

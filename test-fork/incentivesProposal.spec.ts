@@ -34,6 +34,11 @@ import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
 import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
 import { IERC20DetailedFactory } from '../types/IERC20DetailedFactory';
 import { fullCycleLendingPool, getReserveConfigs, spendList } from './helpers';
+import {
+  deployAaveIncentivesController,
+  deployInitializableAdminUpgradeabilityProxy,
+} from '../helpers/contracts-accessors';
+import { IGovernancePowerDelegationTokenFactory } from '../types/IGovernancePowerDelegationTokenFactory';
 
 const {
   RESERVES = 'DAI,GUSD,USDC,USDT,WBTC,WETH',
@@ -109,26 +114,17 @@ describe('Enable incentives in target assets', () => {
     [proposer, incentivesProxyAdmin] = await DRE.ethers.getSigners();
 
     // Deploy incentives implementation
-    const { address: incentivesImplementation } = await DRE.deployments.deploy(
-      'StakedTokenIncentivesController',
-      {
-        from: proposer.address,
-        args: [AAVE_STAKE, AAVE_SHORT_EXECUTOR],
-      }
-    );
+    const { address: incentivesImplementation } = await deployAaveIncentivesController([
+      AAVE_STAKE,
+      AAVE_SHORT_EXECUTOR,
+    ]);
     const incentivesInitParams = StakedTokenIncentivesControllerFactory.connect(
       incentivesImplementation,
       proposer
     ).interface.encodeFunctionData('initialize');
 
     // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
-    const { address: incentivesProxyAddress } = await DRE.deployments.deploy(
-      'InitializableAdminUpgradeabilityProxy',
-      {
-        from: proposer.address,
-        args: [],
-      }
-    );
+    const { address: incentivesProxyAddress } = await deployInitializableAdminUpgradeabilityProxy();
     incentivesProxy = incentivesProxyAddress;
 
     // Initialize proxy for incentives controller
@@ -201,7 +197,7 @@ describe('Enable incentives in target assets', () => {
     variableDebtDAI = IERC20Factory.connect(variableDebtTokenAddress, proposer);
 
     // Transfer enough AAVE to proposer
-    await (await aave.transfer(proposer.address, parseEther('1000000'))).wait();
+    await (await aave.transfer(proposer.address, parseEther('2000000'))).wait();
 
     // Transfer DAI to repay future DAI loan
     await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
@@ -231,8 +227,28 @@ describe('Enable incentives in target assets', () => {
   });
 
   it('Proposal should be created', async () => {
+    await advanceBlockTo((await latestBlock()) + 10);
+
+    try {
+      const balance = await aave.balanceOf(proposer.address);
+      console.log('AAVE Balance proposer', formatEther(balance));
+      const aaveGovToken = IGovernancePowerDelegationTokenFactory.connect(AAVE_TOKEN, proposer);
+      const propositionPower = await aaveGovToken.getPowerAtBlock(
+        proposer.address,
+        ((await latestBlock()) - 1).toString(),
+        '1'
+      );
+
+      console.log(
+        `Proposition power of ${proposer.address} at block - 1`,
+        formatEther(propositionPower)
+      );
+    } catch (error) {
+      console.log(error);
+    }
     // Submit proposal
     proposalId = await gov.getProposalsCount();
+
     await DRE.run('propose-incentives', {
       proposalExecutionPayload,
       incentivesProxy,
@@ -242,6 +258,7 @@ describe('Enable incentives in target assets', () => {
       shortExecutor: AAVE_SHORT_EXECUTOR,
       ipfsHash: IPFS_HASH,
     });
+    console.log('submited');
 
     // Mine block due flash loan voting protection
     await advanceBlockTo((await latestBlock()) + 1);
