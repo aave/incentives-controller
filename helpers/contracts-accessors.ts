@@ -9,11 +9,11 @@ import { eContractid, tEthereumAddress } from './types';
 import { MintableErc20 } from '../types/MintableErc20';
 import { SelfdestructTransfer } from '../types/SelfdestructTransfer';
 import { IERC20Detailed } from '../types/IERC20Detailed';
-import { AaveIncentivesController } from '../types/AaveIncentivesController';
 import { verifyContract } from './etherscan-verification';
 import { ATokenMock } from '../types/ATokenMock';
 import {
   InitializableAdminUpgradeabilityProxyFactory,
+  StakedTokenIncentivesController,
   StakedTokenIncentivesControllerFactory,
 } from '../types';
 
@@ -21,8 +21,8 @@ export const deployAaveIncentivesController = async (
   [aavePsm, emissionManager]: [tEthereumAddress, tEthereumAddress],
   verify?: boolean
 ) => {
-  const id = eContractid.AaveIncentivesController;
-  const args: string[] = [aavePsm, emissionManager];
+  const id = eContractid.StakedTokenIncentivesController;
+  const args: [string, string] = [aavePsm, emissionManager];
   const instance = await new StakedTokenIncentivesControllerFactory(await getFirstSigner()).deploy(
     ...args
   );
@@ -55,8 +55,8 @@ export const deployATokenMock = async (aicAddress: tEthereumAddress, slug: strin
 
 export const getMintableErc20 = getContractFactory<MintableErc20>(eContractid.MintableErc20);
 
-export const getAaveIncentivesController = getContractFactory<AaveIncentivesController>(
-  eContractid.AaveIncentivesController
+export const getAaveIncentivesController = getContractFactory<StakedTokenIncentivesController>(
+  eContractid.StakedTokenIncentivesController
 );
 
 export const getIErc20Detailed = getContractFactory<IERC20Detailed>(eContractid.IERC20Detailed);

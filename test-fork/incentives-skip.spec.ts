@@ -39,6 +39,10 @@ import {
   deployInitializableAdminUpgradeabilityProxy,
 } from '../helpers/contracts-accessors';
 import { IGovernancePowerDelegationTokenFactory } from '../types/IGovernancePowerDelegationTokenFactory';
+import { IExecutorWithTimelockFactory } from '../types/IExecutorWithTimelockFactory';
+import { time } from 'console';
+import { exec } from 'child_process';
+import { withSaveAndVerify } from '../helpers/contracts-helpers';
 
 const {
   RESERVES = 'DAI,GUSD,USDC,USDT,WBTC,WETH',
@@ -93,8 +97,22 @@ describe('Enable incentives in target assets', () => {
   let variableDebtDAI: IERC20;
   let snapshotId: string;
   let proposalId: BigNumber;
-  let aTokensImpl: tEthereumAddress[];
-  let variableDebtTokensImpl: tEthereumAddress[];
+  let aTokensImpl: [
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress
+  ];
+  let variableDebtTokensImpl: [
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress
+  ];
   let proposalExecutionPayload: tEthereumAddress;
   let symbols: {
     [key: string]: {
@@ -148,13 +166,34 @@ describe('Enable incentives in target assets', () => {
       treasury: TREASURY,
     });
 
-    aTokensImpl = [...aTokens];
-    variableDebtTokensImpl = [...variableDebtTokens];
+    aTokensImpl = [
+      ...(aTokens as [
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress
+      ]),
+    ];
+    variableDebtTokensImpl = [
+      ...(variableDebtTokens as [
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress
+      ]),
+    ];
 
     // Deploy Proposal Executor Payload
-    const {
-      address: proposalExecutionPayloadAddress,
-    } = await new ProposalIncentivesExecutorFactory(proposer).deploy();
+    const { address: proposalExecutionPayloadAddress } = await withSaveAndVerify(
+      await new ProposalIncentivesExecutorFactory(proposer).deploy(),
+      'ProposalIncentivesExecutor',
+      [],
+      true
+    );
     proposalExecutionPayload = proposalExecutionPayloadAddress;
     // Send ether to the AAVE_WHALE, which is a non payable contract via selfdestruct
     const selfDestructContract = await new SelfdestructTransferFactory(proposer).deploy();
@@ -163,9 +202,25 @@ describe('Enable incentives in target assets', () => {
         value: ethers.utils.parseEther('1'),
       })
     ).wait();
+    // Send ether to the GOV, which is a non payable contract via selfdestruct
+    const selfDestructContractV2 = await new SelfdestructTransferFactory(proposer).deploy();
+    await (
+      await selfDestructContractV2.destroyAndTransfer(AAVE_GOVERNANCE_V2, {
+        value: ethers.utils.parseEther('1'),
+      })
+    ).wait();
+    // Send ether to the Short Executor, which is a non payable contract via selfdestruct
+    const selfDestructContractV3 = await new SelfdestructTransferFactory(proposer).deploy();
+    await (
+      await selfDestructContractV3.destroyAndTransfer(AAVE_SHORT_EXECUTOR, {
+        value: ethers.utils.parseEther('1'),
+      })
+    ).wait();
     await impersonateAccountsHardhat([
       AAVE_WHALE,
       ...Object.keys(spendList).map((k) => spendList[k].holder),
+      AAVE_GOVERNANCE_V2,
+      AAVE_SHORT_EXECUTOR,
     ]);
 
     // Impersonating holders
@@ -200,7 +255,7 @@ describe('Enable incentives in target assets', () => {
     await (await aave.transfer(proposer.address, parseEther('2000000'))).wait();
 
     // Transfer DAI to repay future DAI loan
-    await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
+    const lastTx = await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
 
     // Save aToken and debt token names
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
@@ -226,64 +281,94 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  it('Proposal should be created', async () => {
-    await advanceBlockTo((await latestBlock()) + 10);
-
-    try {
-      const balance = await aave.balanceOf(proposer.address);
-      console.log('AAVE Balance proposer', formatEther(balance));
-      const aaveGovToken = IGovernancePowerDelegationTokenFactory.connect(AAVE_TOKEN, proposer);
-      const propositionPower = await aaveGovToken.getPowerAtBlock(
-        proposer.address,
-        ((await latestBlock()) - 1).toString(),
-        '1'
-      );
-
-      console.log(
-        `Proposition power of ${proposer.address} at block - 1`,
-        formatEther(propositionPower)
-      );
-    } catch (error) {
-      console.log(error);
-    }
-    // Submit proposal
-    proposalId = await gov.getProposalsCount();
-
-    await DRE.run('propose-incentives', {
-      proposalExecutionPayload,
-      incentivesProxy,
-      aTokens: aTokensImpl.join(','),
-      variableDebtTokens: variableDebtTokensImpl.join(','),
-      aaveGovernance: AAVE_GOVERNANCE_V2,
-      shortExecutor: AAVE_SHORT_EXECUTOR,
-      ipfsHash: IPFS_HASH,
-    });
-    console.log('submited');
-
-    // Mine block due flash loan voting protection
-    await advanceBlockTo((await latestBlock()) + 1);
-
-    // Submit vote and advance block to Queue phase
-    await (await gov.submitVote(proposalId, true)).wait();
-    await advanceBlockTo((await latestBlock()) + VOTING_DURATION + 1);
-  });
-
-  it('Proposal should be queued', async () => {
-    // Queue and advance block to Execution phase
-    await (await gov.queue(proposalId)).wait();
-    let proposalState = await gov.getProposalState(proposalId);
-    expect(proposalState).to.be.equal(5);
-
-    await increaseTime(86400 + 10);
-  });
-
   it('Proposal should be executed', async () => {
-    // Execute payload
-    await (await gov.execute(proposalId)).wait();
-    console.log('Proposal executed');
+    const impersonatedGovernance = await ethers.provider.getSigner(AAVE_GOVERNANCE_V2);
+    const impersonateExecutor = await ethers.provider.getSigner(AAVE_SHORT_EXECUTOR);
 
-    const proposalState = await gov.getProposalState(proposalId);
-    expect(proposalState).to.be.equal(7);
+    const executionPayload = ProposalIncentivesExecutorFactory.connect(
+      proposalExecutionPayload,
+      impersonateExecutor
+    );
+    try {
+      await (
+        await executionPayload.execute(incentivesProxy, aTokensImpl, variableDebtTokensImpl, {
+          gasLimit: 6000000,
+        })
+      ).wait();
+    } catch (error) {
+      if (DRE.network.name.includes('tenderly')) {
+        const transactionLink = `https://dashboard.tenderly.co/${DRE.config.tenderly.username}/${
+          DRE.config.tenderly.project
+        }/fork/${DRE.tenderly.network().getFork()}/simulation/${DRE.tenderly.network().getHead()}`;
+        console.error(
+          '[TENDERLY] Transaction Reverted. Check TX simulation error at:',
+          transactionLink
+        );
+      }
+      throw error;
+    }
+    /* Other way via impersonating gov
+
+    const executor = IExecutorWithTimelockFactory.connect(
+      AAVE_SHORT_EXECUTOR,
+      impersonatedGovernance
+    );
+
+    // Calldata
+    const callData = ethers.utils.defaultAbiCoder.encode(
+      ['address', 'address[6]', 'address[6]'],
+      [incentivesProxy, aTokensImpl, variableDebtTokensImpl]
+    );
+    const test = await DRE.ethers.provider._getBlock(await latestBlock());
+
+    const { timestamp } = await DRE.ethers.provider.getBlock(await latestBlock());
+    const executionTime = BigNumber.from(timestamp.toString()).add('86415');
+    try {
+      // Queue payload
+      await (
+        await executor.queueTransaction(
+          proposalExecutionPayload,
+          '0',
+          'execute(address,address[6],address[6])',
+          callData,
+          executionTime,
+          true
+        )
+      ).wait();
+
+      const { timestamp: time2 } = await DRE.ethers.provider.getBlock(await latestBlock());
+      console.log('time2', time2, executionTime.toString());
+      const neededTime = executionTime.sub(time2.toString());
+      // Pass time
+      await increaseTime(Number(neededTime.add('1000').toString()));
+      const { timestamp: tim32 } = await DRE.ethers.provider.getBlock(await latestBlock());
+      console.log('current', tim32, executionTime.toString());
+      expect(tim32).to.be.gte(Number(executionTime.toString()), 'chain.timestamp below execution');
+      // Execute payload
+      await (
+        await executor.executeTransaction(
+          proposalExecutionPayload,
+          '0',
+          'execute(address,address[6],address[6])',
+          callData,
+          executionTime,
+          true,
+          { gasLimit: 3000000 }
+        )
+      ).wait();
+    } catch (error) {
+      if (DRE.network.name.includes('tenderly')) {
+        const transactionLink = `https://dashboard.tenderly.co/${DRE.config.tenderly.username}/${
+          DRE.config.tenderly.project
+        }/fork/${DRE.tenderly.network().getFork()}/simulation/${DRE.tenderly.network().getHead()}`;
+        console.error(
+          '[TENDERLY] Transaction Reverted. Check TX simulation error at:',
+          transactionLink
+        );
+      }
+      throw error;
+    }
+    */
   });
 
   it('Check emission rate', async () => {
