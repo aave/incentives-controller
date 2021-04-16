@@ -5,7 +5,7 @@ pragma abicoder v2;
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {ILendingPoolAddressesProvider} from '../interfaces/ILendingPoolAddressesProvider.sol';
 import {ILendingPoolConfigurator} from '../interfaces/ILendingPoolConfigurator.sol';
-import {IStakedTokenIncentivesController} from '../interfaces/IStakedTokenIncentivesController.sol';
+import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 import {IAaveEcosystemReserveController} from '../interfaces/IAaveEcosystemReserveController.sol';
 import {IProposalIncentivesExecutor} from '../interfaces/IProposalIncentivesExecutor.sol';
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
@@ -47,8 +47,8 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     uint256[] memory emissions = new uint256[](12);
 
     ILendingPoolConfigurator poolConfigurator = ILendingPoolConfigurator(POOL_CONFIGURATOR);
-    IStakedTokenIncentivesController incentivesController =
-      IStakedTokenIncentivesController(incentivesControllerAddress);
+    IAaveIncentivesController incentivesController =
+      IAaveIncentivesController(incentivesControllerAddress);
     IAaveEcosystemReserveController ecosystemReserveController =
       IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS);
 

@@ -10,7 +10,6 @@ import {AaveDistributionManager} from './AaveDistributionManager.sol';
 import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {IScaledBalanceToken} from '../interfaces/IScaledBalanceToken.sol';
-import {IStakedTokenIncentivesController} from '../interfaces/IStakedTokenIncentivesController.sol';
 import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 
 /**
@@ -21,7 +20,7 @@ import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController
  * @author Aave
  **/
 contract StakedTokenIncentivesController is
-  IStakedTokenIncentivesController,
+  IAaveIncentivesController,
   VersionedInitializable,
   AaveDistributionManager
 {
@@ -57,7 +56,7 @@ contract StakedTokenIncentivesController is
     IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
   }
 
-  /// @inheritdoc IStakedTokenIncentivesController
+  /// @inheritdoc IAaveIncentivesController
   function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
     external
     override
@@ -133,14 +132,21 @@ contract StakedTokenIncentivesController is
     require(to != address(0), 'INVALID_TO_ADDRESS');
     return _claimRewards(assets, amount, msg.sender, user, to);
   }
+    /**
+   * @dev Claims reward for an user on behalf, on all the assets of the lending pool, accumulating the pending rewards.
+   * @param amount Amount of rewards to claim
+   * @param user Address to check and claim rewards
+   * @param to Address that will be receiving the rewards
+   * @return Rewards claimed
+   **/
 
-  /// @inheritdoc IStakedTokenIncentivesController
+  /// @inheritdoc IAaveIncentivesController
   function setClaimer(address user, address caller) external override onlyEmissionManager {
     _authorizedClaimers[user] = caller;
     emit ClaimerSet(user, caller);
   }
 
-  /// @inheritdoc IStakedTokenIncentivesController
+  /// @inheritdoc IAaveIncentivesController
   function getClaimer(address user) external view override returns (address) {
     return _authorizedClaimers[user];
   }
