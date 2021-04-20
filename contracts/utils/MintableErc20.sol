@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
-pragma solidity 0.7.5;
+pragma solidity 0.6.12;
 
-import {ERC20} from '@aave/aave-stake/contracts/lib/ERC20.sol';
+import {ERC20} from '@aave/protocol-v2/contracts/dependencies/openzeppelin/contracts/ERC20.sol';
 
 /**
  * @title ERC20Mintable
@@ -12,7 +12,7 @@ contract MintableErc20 is ERC20 {
     string memory name,
     string memory symbol,
     uint8 decimals
-  ) public ERC20(name, symbol, decimals) {}
+  ) public ERC20(name, symbol) {}
 
   /**
    * @dev Function to mint tokens
