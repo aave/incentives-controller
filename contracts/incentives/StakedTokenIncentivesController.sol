@@ -6,7 +6,7 @@ import {SafeERC20} from '@aave/aave-stake/contracts/lib/SafeERC20.sol';
 import {SafeMath} from '../lib/SafeMath.sol';
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
 import {VersionedInitializable} from '@aave/aave-stake/contracts/utils/VersionedInitializable.sol';
-import {AaveDistributionManager} from './AaveDistributionManager.sol';
+import {DistributionManager} from './DistributionManager.sol';
 import {IStakedTokenWithConfig} from '../interfaces/IStakedTokenWithConfig.sol';
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
 import {IScaledBalanceToken} from '../interfaces/IScaledBalanceToken.sol';
@@ -22,7 +22,7 @@ import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController
 contract StakedTokenIncentivesController is
   IAaveIncentivesController,
   VersionedInitializable,
-  AaveDistributionManager
+  DistributionManager
 {
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
@@ -43,16 +43,15 @@ contract StakedTokenIncentivesController is
   }
 
   constructor(IStakedTokenWithConfig stakeToken, address emissionManager)
-    AaveDistributionManager(emissionManager)
+    DistributionManager(emissionManager)
   {
     STAKE_TOKEN = stakeToken;
   }
 
   /**
    * @dev Initialize IStakedTokenIncentivesController
-   * @param addressesProvider the address of the corresponding addresses provider
    **/
-  function initialize(address addressesProvider) external initializer {
+  function initialize() external initializer {
     //approves the safety module to allow staking
     IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
   }
@@ -133,7 +132,8 @@ contract StakedTokenIncentivesController is
     require(to != address(0), 'INVALID_TO_ADDRESS');
     return _claimRewards(assets, amount, msg.sender, user, to);
   }
-    /**
+
+  /**
    * @dev Claims reward for an user on behalf, on all the assets of the lending pool, accumulating the pending rewards.
    * @param amount Amount of rewards to claim
    * @param user Address to check and claim rewards

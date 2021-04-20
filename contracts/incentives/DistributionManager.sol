@@ -7,11 +7,11 @@ import {SafeMath} from '../lib/SafeMath.sol';
 import {DistributionTypes} from '../lib/DistributionTypes.sol';
 
 /**
- * @title AaveDistributionManager
+ * @title DistributionManager
  * @notice Accounting contract to manage multiple staking distributions
  * @author Aave
  **/
-contract AaveDistributionManager is IAaveDistributionManager {
+contract DistributionManager is IAaveDistributionManager {
   using SafeMath for uint256;
 
   struct AssetData {
@@ -30,44 +30,42 @@ contract AaveDistributionManager is IAaveDistributionManager {
   uint256 internal _distributionEnd;
 
   modifier onlyEmissionManager() {
-      require(msg.sender == EMISSION_MANAGER, 'ONLY_EMISSION_MANAGER');
-      _;
+    require(msg.sender == EMISSION_MANAGER, 'ONLY_EMISSION_MANAGER');
+    _;
   }
 
   constructor(address emissionManager) {
     EMISSION_MANAGER = emissionManager;
   }
-      
+
   /// @inheritdoc IAaveDistributionManager
   function setDistributionEnd(uint256 distributionEnd) external override onlyEmissionManager {
     _distributionEnd = distributionEnd;
     emit DistributionEndUpdated(distributionEnd);
   }
 
-
   /// @inheritdoc IAaveDistributionManager
-  function getDistributionEnd() external override view returns (uint256) {
+  function getDistributionEnd() external view override returns (uint256) {
     return _distributionEnd;
   }
 
   /// @inheritdoc IAaveDistributionManager
-  function DISTRIBUTION_END() external override view returns (uint256) {
+  function DISTRIBUTION_END() external view override returns (uint256) {
     return _distributionEnd;
   }
 
   /// @inheritdoc IAaveDistributionManager
-  function getUserAssetData(address user, address asset) public override view returns (uint256) {
+  function getUserAssetData(address user, address asset) public view override returns (uint256) {
     return assets[asset].users[user];
   }
 
   /**
-  * @dev Configure the assets for a specific emission
-  * @param assetsConfigInput The array of each asset configuration
-  **/
+   * @dev Configure the assets for a specific emission
+   * @param assetsConfigInput The array of each asset configuration
+   **/
   function _configureAssets(DistributionTypes.AssetConfigInput[] memory assetsConfigInput)
     internal
   {
-
     for (uint256 i = 0; i < assetsConfigInput.length; i++) {
       AssetData storage assetConfig = assets[assetsConfigInput[i].underlyingAsset];
 
@@ -99,7 +97,7 @@ contract AaveDistributionManager is IAaveDistributionManager {
     uint256 totalStaked
   ) internal returns (uint256) {
     uint256 oldIndex = assetConfig.index;
-    uint256 emissionPerSecond =  assetConfig.emissionPerSecond;
+    uint256 emissionPerSecond = assetConfig.emissionPerSecond;
     uint128 lastUpdateTimestamp = assetConfig.lastUpdateTimestamp;
 
     if (block.timestamp == lastUpdateTimestamp) {
@@ -110,14 +108,13 @@ contract AaveDistributionManager is IAaveDistributionManager {
       _getAssetIndex(oldIndex, emissionPerSecond, lastUpdateTimestamp, totalStaked);
 
     if (newIndex != oldIndex) {
-      require(uint104(newIndex) == newIndex, "Index overflow");
+      require(uint104(newIndex) == newIndex, 'Index overflow');
       //optimization: storing one after another saves one SSTORE
       assetConfig.index = uint104(newIndex);
       assetConfig.lastUpdateTimestamp = uint40(block.timestamp);
       emit AssetIndexUpdated(asset, newIndex);
-    }
-    else {
-        assetConfig.lastUpdateTimestamp = uint40(block.timestamp);
+    } else {
+      assetConfig.lastUpdateTimestamp = uint40(block.timestamp);
     }
 
     return newIndex;
@@ -240,7 +237,6 @@ contract AaveDistributionManager is IAaveDistributionManager {
     uint128 lastUpdateTimestamp,
     uint256 totalBalance
   ) internal view returns (uint256) {
-    
     uint256 distributionEnd = _distributionEnd;
     if (
       emissionPerSecond == 0 ||

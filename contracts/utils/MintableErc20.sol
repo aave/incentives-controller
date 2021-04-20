@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: agpl-3.0
 pragma solidity 0.7.5;
 
-import './ERC20.sol';
+import {ERC20} from '@aave/aave-stake/contracts/lib/ERC20.sol';
 
 /**
  * @title ERC20Mintable
@@ -25,9 +25,9 @@ contract MintableErc20 is ERC20 {
   }
 
   /**
-  * @dev implements a mock permit feature
-  **/
-function permit(
+   * @dev implements a mock permit feature
+   **/
+  function permit(
     address owner,
     address spender,
     uint256 value,
