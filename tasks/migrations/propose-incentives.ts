@@ -1,10 +1,6 @@
 import { task } from 'hardhat/config';
 import { config } from 'dotenv';
-import { IAaveGovernanceV2 } from '../../types/IAaveGovernanceV2';
-import { ProposalIncentivesExecutorFactory } from '../../types';
-import { ZERO_ADDRESS } from '../../helpers/constants';
 import { IAaveGovernanceV2Factory } from '../../types/IAaveGovernanceV2Factory';
-import { GovernancePowerDelegationERC20Factory } from '../../types/GovernancePowerDelegationERC20Factory';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const bs58 = require('bs58');
 

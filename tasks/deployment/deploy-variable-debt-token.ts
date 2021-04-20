@@ -2,7 +2,6 @@ import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
 import { VariableDebtTokenFactory } from '../../types';
 import { IERC20DetailedFactory } from '../../types/IERC20DetailedFactory';
-import { IERC20Factory } from '../../types/IERC20Factory';
 import { ILendingPoolDataFactory } from '../../types/ILendingPoolDataFactory';
 
 task('deploy-var-debt-token', 'Deploy AToken using prior reserve config')
