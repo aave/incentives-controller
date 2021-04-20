@@ -286,7 +286,7 @@ describe('Enable incentives in target assets', () => {
     );
     try {
       await (
-        await executionPayload.execute(incentivesProxy, aTokensImpl, variableDebtTokensImpl, {
+        await executionPayload.execute(aTokensImpl, variableDebtTokensImpl, {
           gasLimit: 6000000,
         })
       ).wait();
