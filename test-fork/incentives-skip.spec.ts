@@ -20,7 +20,6 @@ import { IAaveGovernanceV2 } from '../types/IAaveGovernanceV2';
 import { ILendingPool } from '../types/ILendingPool';
 import {
   StakedTokenIncentivesControllerFactory,
-  AaveProtocolDataProviderFactory,
   AToken,
   ATokenFactory,
   InitializableAdminUpgradeabilityProxyFactory,
@@ -38,10 +37,6 @@ import {
   deployAaveIncentivesController,
   deployInitializableAdminUpgradeabilityProxy,
 } from '../helpers/contracts-accessors';
-import { IGovernancePowerDelegationTokenFactory } from '../types/IGovernancePowerDelegationTokenFactory';
-import { IExecutorWithTimelockFactory } from '../types/IExecutorWithTimelockFactory';
-import { time } from 'console';
-import { exec } from 'child_process';
 import { withSaveAndVerify } from '../helpers/contracts-helpers';
 
 const {

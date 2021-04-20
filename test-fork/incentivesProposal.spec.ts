@@ -5,11 +5,9 @@ import { formatEther, parseEther, parseUnits } from 'ethers/lib/utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { JsonRpcSigner } from '@ethersproject/providers';
 
-import { DRE, waitForTx } from '../helpers/misc-utils';
+import { DRE } from '../helpers/misc-utils';
 import {
-  evmSnapshot,
   increaseTime,
-  evmRevert,
   latestBlock,
   advanceBlockTo,
   impersonateAccountsHardhat,
@@ -20,10 +18,8 @@ import { IAaveGovernanceV2 } from '../types/IAaveGovernanceV2';
 import { ILendingPool } from '../types/ILendingPool';
 import {
   StakedTokenIncentivesControllerFactory,
-  AaveProtocolDataProviderFactory,
   AToken,
   ATokenFactory,
-  InitializableAdminUpgradeabilityProxyFactory,
   ProposalIncentivesExecutorFactory,
   SelfdestructTransferFactory,
 } from '../types';
@@ -34,10 +30,7 @@ import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
 import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
 import { IERC20DetailedFactory } from '../types/IERC20DetailedFactory';
 import { fullCycleLendingPool, getReserveConfigs, spendList } from './helpers';
-import {
-  deployAaveIncentivesController,
-  deployInitializableAdminUpgradeabilityProxy,
-} from '../helpers/contracts-accessors';
+import { deployAaveIncentivesController } from '../helpers/contracts-accessors';
 import { IGovernancePowerDelegationTokenFactory } from '../types/IGovernancePowerDelegationTokenFactory';
 
 const {
@@ -49,6 +42,7 @@ const {
   AAVE_TOKEN = '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
   TREASURY = '0x464c71f6c2f760dda6093dcb91c24c39e5d6e18c',
   IPFS_HASH = 'QmT9qk3CRYbFDWpDFYeAv8T8H1gnongwKhh5J68NLkLir6',
+  INCENTIVES_PROXY = '0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5',
   AAVE_GOVERNANCE_V2 = '0xEC568fffba86c094cf06b22134B23074DFE2252c', // mainnet
   AAVE_SHORT_EXECUTOR = '0xee56e2b3d491590b5b31738cc34d5232f378a8d5', // mainnet
 } = process.env;
@@ -91,7 +85,6 @@ describe('Enable incentives in target assets', () => {
   let dai: IERC20;
   let aDAI: AToken;
   let variableDebtDAI: IERC20;
-  let snapshotId: string;
   let proposalId: BigNumber;
   let aTokensImpl: tEthereumAddress[];
   let variableDebtTokensImpl: tEthereumAddress[];
@@ -102,12 +95,7 @@ describe('Enable incentives in target assets', () => {
       variableDebtToken: { symbol: string; name: string };
     };
   } = {};
-  /*
-    afterEach(async () => {
-      evmRevert(snapshotId);
-      snapshotId = await evmSnapshot();
-    });
-  */
+
   before(async () => {
     await rawHRE.run('set-DRE');
     ethers = DRE.ethers;
@@ -118,27 +106,8 @@ describe('Enable incentives in target assets', () => {
       AAVE_STAKE,
       AAVE_SHORT_EXECUTOR,
     ]);
-    const incentivesInitParams = StakedTokenIncentivesControllerFactory.connect(
-      incentivesImplementation,
-      proposer
-    ).interface.encodeFunctionData('initialize');
 
-    // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
-    const { address: incentivesProxyAddress } = await deployInitializableAdminUpgradeabilityProxy();
-    incentivesProxy = incentivesProxyAddress;
-
-    // Initialize proxy for incentives controller
-    const incentivesProxyInstance = InitializableAdminUpgradeabilityProxyFactory.connect(
-      incentivesProxy,
-      proposer
-    );
-    await waitForTx(
-      await incentivesProxyInstance['initialize(address,address,bytes)'](
-        incentivesImplementation,
-        incentivesProxyAdmin.address,
-        incentivesInitParams
-      )
-    );
+    incentivesProxy = INCENTIVES_PROXY;
 
     // Deploy aTokens and debt tokens
     const { aTokens, variableDebtTokens } = await rawHRE.run('deploy-reserve-implementations', {
@@ -251,7 +220,6 @@ describe('Enable incentives in target assets', () => {
 
     await DRE.run('propose-incentives', {
       proposalExecutionPayload,
-      incentivesProxy,
       aTokens: aTokensImpl.join(','),
       variableDebtTokens: variableDebtTokensImpl.join(','),
       aaveGovernance: AAVE_GOVERNANCE_V2,

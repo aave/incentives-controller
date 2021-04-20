@@ -16,16 +16,19 @@ import {
   StakedTokenIncentivesController,
   StakedTokenIncentivesControllerFactory,
 } from '../types';
+import { DefenderRelaySigner } from 'defender-relay-client/lib/ethers';
+import { Signer } from 'ethers';
 
 export const deployAaveIncentivesController = async (
   [aavePsm, emissionManager]: [tEthereumAddress, tEthereumAddress],
-  verify?: boolean
+  verify?: boolean,
+  signer?: Signer | DefenderRelaySigner
 ) => {
   const id = eContractid.StakedTokenIncentivesController;
   const args: [string, string] = [aavePsm, emissionManager];
-  const instance = await new StakedTokenIncentivesControllerFactory(await getFirstSigner()).deploy(
-    ...args
-  );
+  const instance = await new StakedTokenIncentivesControllerFactory(
+    signer || (await getFirstSigner())
+  ).deploy(...args);
   await instance.deployTransaction.wait();
   if (verify) {
     await verifyContract(instance.address, args);

@@ -62,9 +62,9 @@ const VOTING_DURATION = 19200;
 
 const AAVE_WHALE = '0x25f2226b597e8f9514b3f68f00f494cf4f286491';
 
-const AAVE_STAKE = '0x4da27a545c0c5B758a6BA100e3a049001de870f5';
 const DAI_TOKEN = '0x6b175474e89094c44da98b954eedeac495271d0f';
 const DAI_HOLDER = '0x72aabd13090af25dbb804f84de6280c697ed1150';
+const INCENTIVES_PROXY = '0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5';
 
 task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activated').setAction(
   async (_, localBRE) => {
@@ -97,32 +97,7 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
     ethers = DRE.ethers;
     [proposer, incentivesProxyAdmin] = await DRE.ethers.getSigners();
 
-    // Deploy incentives implementation
-    const { address: incentivesImplementation } = await deployAaveIncentivesController([
-      AAVE_STAKE,
-      AAVE_SHORT_EXECUTOR,
-    ]);
-    const incentivesInitParams = StakedTokenIncentivesControllerFactory.connect(
-      incentivesImplementation,
-      proposer
-    ).interface.encodeFunctionData('initialize');
-
-    // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
-    const { address: incentivesProxyAddress } = await deployInitializableAdminUpgradeabilityProxy();
-    incentivesProxy = incentivesProxyAddress;
-
-    // Initialize proxy for incentives controller
-    const incentivesProxyInstance = InitializableAdminUpgradeabilityProxyFactory.connect(
-      incentivesProxy,
-      proposer
-    );
-    await waitForTx(
-      await incentivesProxyInstance['initialize(address,address,bytes)'](
-        incentivesImplementation,
-        incentivesProxyAdmin.address,
-        incentivesInitParams
-      )
-    );
+    incentivesProxy = INCENTIVES_PROXY;
 
     // Deploy aTokens and debt tokens
     const { aTokens, variableDebtTokens } = await DRE.run('deploy-reserve-implementations', {
@@ -214,7 +189,6 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
 
     await DRE.run('propose-incentives', {
       proposalExecutionPayload,
-      incentivesProxy,
       aTokens: aTokensImpl.join(','),
       variableDebtTokens: variableDebtTokensImpl.join(','),
       aaveGovernance: AAVE_GOVERNANCE_V2,
@@ -243,6 +217,6 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
 
     console.log('=== INFO ===');
     console.log('Proposal payload:', proposalExecutionPayloadAddress);
-    console.log('Incentives Controller proxy:', incentivesProxyAddress);
+    console.log('Incentives Controller proxy:', incentivesProxy);
   }
 );
