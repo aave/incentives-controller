@@ -35,8 +35,7 @@ task('propose-incentives', 'Create some proposals and votes')
         [aTokens, variableDebtTokens]
       );
 
-      const executeSignature = 'execute(address,address[6],address[6])';
-      // const executeSignature = 'execute()';
+      const executeSignature = 'execute(address[6],address[6])';
       const gov = await IAaveGovernanceV2Factory.connect(aaveGovernance, proposer);
       const ipfsEncoded = `0x${bs58.decode(ipfsHash).slice(2).toString('hex')}`;
       //const aaveTokenGov = GovernancePowerDelegationERC20Factory.connect(aaveToken, proposer);
