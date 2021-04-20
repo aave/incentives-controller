@@ -195,7 +195,7 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
       shortExecutor: AAVE_SHORT_EXECUTOR,
       ipfsHash: IPFS_HASH,
     });
-    console.log('submited');
+    console.log('- Proposal Submited');
 
     // Mine block due flash loan voting protection
     await advanceBlockTo((await latestBlock()) + 1);

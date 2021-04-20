@@ -45,8 +45,6 @@ task('propose-incentives', 'Create some proposals and votes')
       const ipfsEncoded = `0x${bs58.decode(ipfsHash).slice(2).toString('hex')}`;
       //const aaveTokenGov = GovernancePowerDelegationERC20Factory.connect(aaveToken, proposer);
 
-      console.log('creating..');
-
       try {
         const tx = await gov.create(
           shortExecutor,
@@ -58,6 +56,7 @@ task('propose-incentives', 'Create some proposals and votes')
           ipfsEncoded,
           { gasLimit: 3000000 }
         );
+        console.log('- Proposal submitted to Governance');
         await tx.wait();
       } catch (error) {
         if (_DRE.network.name.includes('tenderly')) {
