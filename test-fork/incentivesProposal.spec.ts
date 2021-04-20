@@ -249,9 +249,10 @@ describe('Enable incentives in target assets', () => {
   it('Proposal should be executed', async () => {
     // Execute payload
     try {
-      await (await gov.execute(proposalId, { gasLimit: 9000000 })).wait();
+      await (await gov.execute(proposalId, { gasLimit: 3000000 })).wait();
     } catch (error) {
       logError();
+      throw error;
     }
 
     console.log('Proposal executed');

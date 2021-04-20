@@ -38,7 +38,6 @@ task('propose-incentives', 'Create some proposals and votes')
       const executeSignature = 'execute(address[6],address[6])';
       const gov = await IAaveGovernanceV2Factory.connect(aaveGovernance, proposer);
       const ipfsEncoded = `0x${bs58.decode(ipfsHash).slice(2).toString('hex')}`;
-      //const aaveTokenGov = GovernancePowerDelegationERC20Factory.connect(aaveToken, proposer);
 
       try {
         const tx = await gov.create(
