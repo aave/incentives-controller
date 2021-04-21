@@ -318,7 +318,7 @@ describe('Enable incentives in target assets', () => {
     expect(claimed).to.be.eq(expectedClaimedRewards);
   });
 
-  xit('Users should be able to deposit DAI at Lending Pool', async () => {
+  it('Users should be able to deposit DAI at Lending Pool', async () => {
     // Deposit DAI to LendingPool
     await (await dai.connect(proposer).approve(pool.address, parseEther('2000'))).wait();
 
@@ -327,14 +327,14 @@ describe('Enable incentives in target assets', () => {
     expect(await aDAI.balanceOf(proposer.address)).to.be.gte(parseEther('100'));
   });
 
-  xit('Users should be able to request DAI loan from Lending Pool', async () => {
+  it('Users should be able to request DAI loan from Lending Pool', async () => {
     // Request DAI loan to LendingPool
     const tx = await pool.borrow(dai.address, parseEther('1'), '2', '0', proposer.address);
     expect(tx).to.emit(pool, 'Borrow');
     expect(await variableDebtDAI.balanceOf(proposer.address)).to.be.eq(parseEther('1'));
   });
 
-  xit('Users should be able to repay DAI loan from Lending Pool', async () => {
+  it('Users should be able to repay DAI loan from Lending Pool', async () => {
     const {
       configuration: { data },
       variableDebtTokenAddress,
@@ -346,7 +346,7 @@ describe('Enable incentives in target assets', () => {
     expect(tx).to.emit(pool, 'Repay');
   });
 
-  xit('Users should be able to withdraw DAI from Lending Pool', async () => {
+  it('Users should be able to withdraw DAI from Lending Pool', async () => {
     const {
       configuration: { data },
       aTokenAddress,
@@ -362,7 +362,7 @@ describe('Enable incentives in target assets', () => {
     expect(afterDAIBalance).to.be.gt(priorDAIBalance);
   });
 
-  xit('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
+  it('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
 
     // Deposit AAVE to LendingPool to have enought collateral for future borrows
@@ -377,7 +377,7 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  xit('Check all aToken symbols and debt token matches', async () => {
+  it('Check all aToken symbols and debt token matches', async () => {
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
 
     for (let x = 0; x < reserveConfigs.length; x++) {
@@ -400,7 +400,7 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  xit('Users should be able to claim incentives', async () => {
+  it('Users should be able to claim incentives', async () => {
     // Initialize proxy for incentives controller
     const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
@@ -436,7 +436,7 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  xit('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
+  it('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
     const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
     const distributionEnd = await incentives.getDistributionEnd();
 

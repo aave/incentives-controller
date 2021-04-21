@@ -30,7 +30,7 @@ const buildTestEnv = async (
 ) => {
   console.time('setup');
 
-  const aaveToken = await deployMintableErc20(['Aave', 'aave', 18]);
+  const aaveToken = await deployMintableErc20(['Aave', 'aave']);
 
   await waitForTx(await aaveToken.connect(vaultOfRewards).mint(ethers.utils.parseEther('1000000')));
   await topUpWalletsWithAave(

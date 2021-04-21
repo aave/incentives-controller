@@ -48,8 +48,8 @@ export const deployInitializableAdminUpgradeabilityProxy = async (verify?: boole
   return instance;
 };
 
-export const deployMintableErc20 = async ([name, symbol, decimals]: [string, string, number]) =>
-  await deployContract<MintableErc20>(eContractid.MintableErc20, [name, symbol, decimals]);
+export const deployMintableErc20 = async ([name, symbol]: [string, string]) =>
+  await deployContract<MintableErc20>(eContractid.MintableErc20, [name, symbol]);
 
 export const deployATokenMock = async (aicAddress: tEthereumAddress, slug: string) => {
   const instance = await deployContract<ATokenMock>(eContractid.ATokenMock, [aicAddress]);
