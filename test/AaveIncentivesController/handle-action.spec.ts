@@ -1,7 +1,7 @@
 import { fail } from 'assert';
 const { expect } = require('chai');
 
-import { increaseTime, waitForTx, increaseTime } from '../../helpers/misc-utils';
+import { waitForTx, increaseTime } from '../../helpers/misc-utils';
 import { makeSuite } from '../helpers/make-suite';
 import { eventChecker } from '../helpers/comparator-engine';
 import { getBlockTimestamp } from '../../helpers/contracts-helpers';
@@ -67,9 +67,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
 
       // update emissionPerSecond in advance to not affect user calculations
       if (emissionPerSecond) {
-        await aaveIncentivesController.configureAssets([
-          { emissionPerSecond, underlyingAsset, totalStaked: totalSupply },
-        ]);
+        await aaveIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
       }
 
       const distributionEndTimestamp = await aaveIncentivesController.DISTRIBUTION_END();
@@ -82,9 +80,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
-      const assetDataBefore = (
-        await getAssetsData(aaveIncentivesController, [{ underlyingAsset }])
-      )[0];
+      const assetDataBefore = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       if (customTimeMovement) {
         await increaseTime(customTimeMovement);
@@ -101,9 +97,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
-      const assetDataAfter = (
-        await getAssetsData(aaveIncentivesController, [{ underlyingAsset }])
-      )[0];
+      const assetDataAfter = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       const expectedAccruedRewards = getRewards(
         userBalance,

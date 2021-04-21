@@ -11,6 +11,7 @@ import {
   AssetUpdateData,
   getAssetsData,
 } from '../DistributionManager/data-helpers/asset-data';
+import { BigNumberish } from '@ethersproject/bignumber';
 
 type ScenarioAction = {
   caseName: string;
@@ -118,42 +119,64 @@ const configureAssetScenarios: ScenarioAction[] = [
 ];
 
 makeSuite('AaveIncentivesController configureAssets', (testEnv: TestEnv) => {
+  let deployedAssets;
+
+  before(async () => {
+    deployedAssets = [testEnv.aDaiMock, testEnv.aWethMock];
+  });
+
   // custom checks
   it('Tries to submit config updates not from emission manager', async () => {
     const { aaveIncentivesController, users } = testEnv;
     await expect(
-      aaveIncentivesController.connect(users[2].signer).configureAssets([])
+      aaveIncentivesController.connect(users[2].signer).configureAssets([], [])
     ).to.be.revertedWith('ONLY_EMISSION_MANAGER');
   });
 
-  // mutate compatible scenarios
-  // TODO: add events emission
-  for (const { assets, caseName, compareRules, customTimeMovement } of configureAssetScenarios) {
+  for (const {
+    assets: assetsConfig,
+    caseName,
+    compareRules,
+    customTimeMovement,
+  } of configureAssetScenarios) {
     it(caseName, async () => {
       const { aaveIncentivesController } = testEnv;
       const distributionEndTimestamp = await aaveIncentivesController.DISTRIBUTION_END();
 
+      const assets: string[] = [];
+      const assetsEmissions: BigNumberish[] = [];
       const assetConfigsUpdate: AssetUpdateData[] = [];
 
-      assets.forEach((assetConfig, i) => {
-        if (i > RANDOM_ADDRESSES.length) {
+      for (let i = 0; i < assetsConfig.length; i++) {
+        const { emissionPerSecond, totalStaked } = assetsConfig[i];
+        if (i > deployedAssets.length) {
           throw new Error('to many assets to test');
         }
-        const underlyingAsset = RANDOM_ADDRESSES[i];
-        assetConfigsUpdate.push({ ...assetConfig, underlyingAsset });
-      });
 
-      const assetsConfigBefore = await getAssetsData(aaveIncentivesController, assetConfigsUpdate);
+        // Change current supply
+        await deployedAssets[i].setUserBalanceAndSupply('0', totalStaked);
+
+        // Push configs
+        assets.push(deployedAssets[i].address);
+        assetsEmissions.push(emissionPerSecond);
+        assetConfigsUpdate.push({
+          emissionPerSecond,
+          totalStaked,
+          underlyingAsset: deployedAssets[i].address,
+        });
+      }
+
+      const assetsConfigBefore = await getAssetsData(aaveIncentivesController, assets);
 
       if (customTimeMovement) {
         await increaseTime(customTimeMovement);
       }
 
       const txReceipt = await waitForTx(
-        await aaveIncentivesController.configureAssets(assetConfigsUpdate)
+        await aaveIncentivesController.configureAssets(assets, assetsEmissions)
       );
       const configsUpdateBlockTimestamp = await getBlockTimestamp(txReceipt.blockNumber);
-      const assetsConfigAfter = await getAssetsData(aaveIncentivesController, assetConfigsUpdate);
+      const assetsConfigAfter = await getAssetsData(aaveIncentivesController, assets);
 
       const eventsEmitted = txReceipt.events || [];
 

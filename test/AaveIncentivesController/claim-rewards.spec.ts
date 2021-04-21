@@ -82,9 +82,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
 
       // update emissionPerSecond in advance to not affect user calculations
       if (emissionPerSecond) {
-        await aaveIncentivesController.configureAssets([
-          { emissionPerSecond, underlyingAsset, totalStaked },
-        ]);
+        await aaveIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
       }
 
       const destinationAddress = to || userAddress;
@@ -101,9 +99,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
-      const assetDataBefore = (
-        await getAssetsData(aaveIncentivesController, [{ underlyingAsset }])
-      )[0];
+      const assetDataBefore = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       const claimRewardsReceipt = await waitForTx(
         await aaveIncentivesController.claimRewards(
@@ -120,9 +116,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
-      const assetDataAfter = (
-        await getAssetsData(aaveIncentivesController, [{ underlyingAsset }])
-      )[0];
+      const assetDataAfter = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       const unclaimedRewardsAfter = await aaveIncentivesController.getUserUnclaimedRewards(
         userAddress
@@ -210,7 +204,6 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
           'unclaimed rewards after are wrong'
         );
       }
-
 
       expect(claimedAmount.toString()).to.be.equal(
         expectedClaimedAmount.toString(),

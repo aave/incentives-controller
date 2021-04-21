@@ -45,6 +45,10 @@ contract ATokenMock is IAToken {
     return (_userBalance, _totalSupply);
   }
 
+  function scaledTotalSupply() external view returns (uint256) {
+    return _totalSupply;
+  }
+
   function cleanUserState() external {
     _userBalance = 0;
     _totalSupply = 0;

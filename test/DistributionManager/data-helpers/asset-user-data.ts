@@ -1,8 +1,5 @@
 import { BigNumber } from 'ethers';
 import { AaveDistributionManager } from '../../../types/AaveDistributionManager';
-import { StakedAave } from '../../../types/StakedAave';
-import { AaveIncentivesController } from '../../../types/AaveIncentivesController';
-import { StakedAaveV2 } from '../../../types/StakedAaveV2';
 
 export type UserStakeInput = {
   underlyingAsset: string;
