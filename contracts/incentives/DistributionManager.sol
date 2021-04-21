@@ -59,6 +59,11 @@ contract DistributionManager is IAaveDistributionManager {
     return assets[asset].users[user];
   }
 
+  /// @inheritdoc IAaveDistributionManager
+  function getAssetData(address asset) public view override returns (uint256, uint256, uint256) {
+    return (assets[asset].index, assets[asset].emissionPerSecond, assets[asset].lastUpdateTimestamp);
+  }
+
   /**
    * @dev Configure the assets for a specific emission
    * @param assetsConfigInput The array of each asset configuration

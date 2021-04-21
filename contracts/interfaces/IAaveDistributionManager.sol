@@ -37,4 +37,10 @@ interface IAaveDistributionManager {
    **/
    function getUserAssetData(address user, address asset) external view returns (uint256);
 
+   /**
+   * @dev Returns the configuration of the distribution for a certain asset
+   * @param asset The address of the reference asset of the distribution
+   * @return The asset index, the emission per second and the last updated timestamp
+   **/
+   function getAssetData(address asset) external view returns (uint256, uint256, uint256);
 }
