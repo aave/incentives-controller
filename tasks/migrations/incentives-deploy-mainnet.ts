@@ -1,5 +1,5 @@
 import { task } from 'hardhat/config';
-import { DRE, impersonateAccountsHardhat } from '../../helpers/misc-utils';
+import { DRE } from '../../helpers/misc-utils';
 import { tEthereumAddress } from '../../helpers/types';
 import { getReserveConfigs } from '../../test-fork/helpers';
 import { ProposalIncentivesExecutor__factory, IERC20Detailed__factory } from '../../types';
@@ -10,10 +10,8 @@ import kebabCase from 'kebab-case';
 
 const {
   RESERVES = 'DAI,GUSD,USDC,USDT,WBTC,WETH',
-  POOL_CONFIGURATOR = '0x311bb771e4f8952e6da169b425e7e92d6ac45756',
   POOL_PROVIDER = '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
   POOL_DATA_PROVIDER = '0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d',
-  ECO_RESERVE = '0x25F2226B597E8F9514B3F68F00f494cF4f286491',
   AAVE_TOKEN = '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
   TREASURY = '0x464c71f6c2f760dda6093dcb91c24c39e5d6e18c',
   AAVE_GOVERNANCE_V2 = '0xEC568fffba86c094cf06b22134B23074DFE2252c', // mainnet
@@ -55,9 +53,7 @@ task(
 
     if (
       !RESERVES ||
-      !POOL_CONFIGURATOR ||
       !POOL_DATA_PROVIDER ||
-      !ECO_RESERVE ||
       !AAVE_TOKEN ||
       !AAVE_GOVERNANCE_V2 ||
       !AAVE_SHORT_EXECUTOR ||
@@ -87,34 +83,6 @@ task(
     proposalExecutionPayload = proposalExecutionPayloadAddress;
 
     console.log('Deployed ProposalIncentivesExecutor at:', proposalExecutionPayloadAddress);
-
-    // Initialize contracts and tokens
-    const pool = (await ethers.getContractAt(
-      'ILendingPool',
-      AAVE_LENDING_POOL,
-      deployer
-    )) as ILendingPool;
-
-    // Save aToken and debt token names
-    const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, deployer);
-
-    for (let x = 0; x < reserveConfigs.length; x++) {
-      const { tokenAddress, symbol } = reserveConfigs[x];
-      const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
-      const aToken = IERC20Detailed__factory.connect(aTokenAddress, deployer);
-      const varDebtToken = IERC20Detailed__factory.connect(variableDebtTokenAddress, deployer);
-
-      symbols[symbol] = {
-        aToken: {
-          name: await aToken.name(),
-          symbol: await aToken.symbol(),
-        },
-        variableDebtToken: {
-          name: await varDebtToken.name(),
-          symbol: await varDebtToken.symbol(),
-        },
-      };
-    }
 
     console.log('- Finished deployment script');
 
