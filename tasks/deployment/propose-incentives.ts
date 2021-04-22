@@ -5,7 +5,6 @@ import { Signer } from 'ethers';
 import { getDefenderRelaySigner } from '../../helpers/defender-utils';
 import { DRE } from '../../helpers/misc-utils';
 import { logError } from '../../helpers/tenderly-utils';
-import isIPFS from 'is-ipfs';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const bs58 = require('bs58');
@@ -18,7 +17,6 @@ task('propose-incentives', 'Create some proposals and votes')
   .addParam('variableDebtTokens')
   .addParam('aaveGovernance')
   .addParam('shortExecutor')
-  .addParam('ipfsHash')
   .addFlag('defender')
   .setAction(
     async (
@@ -27,7 +25,6 @@ task('propose-incentives', 'Create some proposals and votes')
         variableDebtTokens,
         aaveGovernance,
         shortExecutor,
-        ipfsHash,
         proposalExecutionPayload,
         defender,
       },
@@ -43,11 +40,6 @@ task('propose-incentives', 'Create some proposals and votes')
         proposer = signer;
       }
 
-      if (!isIPFS.multihash(ipfsHash)) {
-        console.log('Please check IPFS_HASH env variable due is not valid ipfs multihash.');
-        throw Error('IPFS_HASH is not valid');
-      }
-
       aTokens = aTokens.split(',');
       variableDebtTokens = variableDebtTokens.split(',');
 
@@ -58,7 +50,7 @@ task('propose-incentives', 'Create some proposals and votes')
 
       const executeSignature = 'execute(address[6],address[6])';
       const gov = await IAaveGovernanceV2__factory.connect(aaveGovernance, proposer);
-      const ipfsEncoded = `0x${bs58.decode(ipfsHash).slice(2).toString('hex')}`;
+      const ipfsEncoded = '0xf7a1f565fcd7684fba6fea5d77c5e699653e21cb6ae25fbf8c5dbc8d694c7949';
 
       try {
         const tx = await gov.create(

@@ -6,11 +6,9 @@ import { IAaveGovernanceV2 } from '../../types/IAaveGovernanceV2';
 import { getDefenderRelaySigner } from '../../helpers/defender-utils';
 import isIPFS from 'is-ipfs';
 import { Signer } from '@ethersproject/abstract-signer';
-import kebabCase from 'kebab-case';
 
 const {
   AAVE_TOKEN = '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
-  IPFS_HASH = 'QmUkPucZ1WUxwGqR979YAKj2UfUsqpSze6MPDcmhtbzmst', // PENDING
   AAVE_GOVERNANCE_V2 = '0xEC568fffba86c094cf06b22134B23074DFE2252c', // mainnet
   AAVE_SHORT_EXECUTOR = '0xee56e2b3d491590b5b31738cc34d5232f378a8d5', // mainnet
 } = process.env;
@@ -31,7 +29,7 @@ task('incentives-submit-proposal:mainnet', 'Submit the incentives proposal to Aa
         proposer = signer;
       }
 
-      if (!AAVE_TOKEN || !IPFS_HASH || !AAVE_GOVERNANCE_V2 || !AAVE_SHORT_EXECUTOR) {
+      if (!AAVE_TOKEN || || !AAVE_GOVERNANCE_V2 || !AAVE_SHORT_EXECUTOR) {
         throw new Error(
           'You have not set correctly the .env file, make sure to read the README.md'
         );
@@ -68,10 +66,6 @@ task('incentives-submit-proposal:mainnet', 'Submit the incentives proposal to Aa
         formatEther(propositionPower)
       );
 
-      if (!isIPFS.multihash(IPFS_HASH)) {
-        console.log('Please check IPFS_HASH env variable due is not valid ipfs multihash.');
-        throw Error('IPFS_HASH is not valid');
-      }
       // Submit proposal
       const proposalId = await gov.getProposalsCount();
       const proposalParams = {
@@ -80,7 +74,6 @@ task('incentives-submit-proposal:mainnet', 'Submit the incentives proposal to Aa
         variableDebtTokens,
         aaveGovernance: AAVE_GOVERNANCE_V2,
         shortExecutor: AAVE_SHORT_EXECUTOR,
-        ipfsHash: IPFS_HASH,
         defender: true,
       };
       console.log('- Submitting proposal with following params:');

@@ -1,31 +1,21 @@
-import { formatEther } from 'ethers/lib/utils';
+import { formatEther, parseEther } from 'ethers/lib/utils';
 import { task } from 'hardhat/config';
-import {
-  advanceBlockTo,
-  DRE,
-  impersonateAccountsHardhat,
-  increaseTime,
-  latestBlock,
-} from '../../helpers/misc-utils';
-import {
-  IAaveEcosystemReserveController,
-  IERC20__factory,
-  IGovernancePowerDelegationToken__factory,
-} from '../../types';
+import { advanceBlockTo, DRE, increaseTime, latestBlock } from '../../helpers/misc-utils';
+import { IERC20__factory, IGovernancePowerDelegationToken__factory } from '../../types';
 import { IAaveGovernanceV2 } from '../../types/IAaveGovernanceV2';
 import { getDefenderRelaySigner } from '../../helpers/defender-utils';
 import isIPFS from 'is-ipfs';
 import { Signer } from '@ethersproject/abstract-signer';
-import { expect } from 'chai';
 import { logError } from '../../helpers/tenderly-utils';
 
 const {
   AAVE_TOKEN = '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
-  IPFS_HASH = 'QmUkPucZ1WUxwGqR979YAKj2UfUsqpSze6MPDcmhtbzmst', // PENDING
   AAVE_GOVERNANCE_V2 = '0xEC568fffba86c094cf06b22134B23074DFE2252c', // mainnet
   AAVE_SHORT_EXECUTOR = '0xee56e2b3d491590b5b31738cc34d5232f378a8d5', // mainnet
 } = process.env;
 const VOTING_DURATION = 19200;
+
+const AAVE_WHALE = '0x25f2226b597e8f9514b3f68f00f494cf4f286491';
 
 task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to Aave Governance')
   .addParam('proposalExecutionPayload')
@@ -41,7 +31,13 @@ task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to A
       const { signer } = await getDefenderRelaySigner();
       proposer = signer;
 
-      if (!AAVE_TOKEN || !IPFS_HASH || !AAVE_GOVERNANCE_V2 || !AAVE_SHORT_EXECUTOR) {
+      const whale = DRE.ethers.provider.getSigner(AAVE_WHALE);
+      const aave = IERC20__factory.connect(AAVE_TOKEN, whale);
+
+      // Transfer enough AAVE to proposer
+      await (await aave.transfer(await proposer.getAddress(), parseEther('2000000'))).wait();
+
+      if (!AAVE_TOKEN || !AAVE_GOVERNANCE_V2 || !AAVE_SHORT_EXECUTOR) {
         throw new Error(
           'You have not set correctly the .env file, make sure to read the README.md'
         );
@@ -64,8 +60,6 @@ task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to A
         proposer
       )) as IAaveGovernanceV2;
 
-      const aave = IERC20__factory.connect(AAVE_TOKEN, proposer);
-
       // Balance and proposal power check
       const balance = await aave.balanceOf(proposerAddress);
       const priorBlock = ((await latestBlock()) - 1).toString();
@@ -78,10 +72,6 @@ task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to A
         formatEther(propositionPower)
       );
 
-      if (!isIPFS.multihash(IPFS_HASH)) {
-        console.log('Please check IPFS_HASH env variable due is not valid ipfs multihash.');
-        throw Error('IPFS_HASH is not valid');
-      }
       // Submit proposal
       const proposalId = await gov.getProposalsCount();
       const proposalParams = {
@@ -90,7 +80,6 @@ task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to A
         variableDebtTokens,
         aaveGovernance: AAVE_GOVERNANCE_V2,
         shortExecutor: AAVE_SHORT_EXECUTOR,
-        ipfsHash: IPFS_HASH,
         defender: true,
       };
       console.log('- Submitting proposal with following params:');
@@ -117,7 +106,7 @@ task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to A
       try {
         // Queue and advance block to Execution phase
         console.log('Queueing');
-        await (await gov.queue(proposalId)).wait();
+        await (await gov.queue(proposalId, { gasLimit: 3000000 })).wait();
         console.log('Queued');
       } catch (error) {
         logError();
@@ -129,7 +118,7 @@ task('incentives-submit-proposal:tenderly', 'Submit the incentives proposal to A
 
       try {
         console.log('Executing');
-        await (await gov.execute(proposalId)).wait();
+        await (await gov.execute(proposalId, { gasLimit: 6000000 })).wait();
       } catch (error) {
         logError();
         throw error;
