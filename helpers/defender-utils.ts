@@ -25,6 +25,11 @@ export const getDefenderRelaySigner = async () => {
     await impersonateAccountsHardhat([defenderAddress]);
     signer = await DRE.ethers.getSigner(defenderAddress);
   }
+  // Reemplace signer if Tenderly network is active
+  if (DRE.network.name.includes('tenderly')) {
+    console.log('  - Impersonating Defender Relay via Tenderly');
+    signer = await DRE.ethers.getSigner(defenderAddress);
+  }
   console.log('  - Balance: ', formatEther(await signer.getBalance()));
 
   return { signer, address: defenderAddress };

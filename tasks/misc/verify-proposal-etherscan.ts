@@ -1,7 +1,10 @@
 import { task } from 'hardhat/config';
 import {
   AaveProtocolDataProvider__factory,
+  IERC20Detailed__factory,
+  ILendingPool,
   ILendingPoolAddressesProvider__factory,
+  ILendingPoolData__factory,
 } from '../../types';
 import { verifyContract } from '../../helpers/etherscan-verification';
 
@@ -30,6 +33,12 @@ task('verify-proposal-etherscan', 'Verify proposals')
     variableDebtTokens = variableDebtTokens.split(',');
 
     // Instances
+    const pool = (await localBRE.ethers.getContractAt(
+      'ILendingPool',
+      AAVE_LENDING_POOL,
+      deployer
+    )) as ILendingPool;
+
     const poolProvider = await ILendingPoolAddressesProvider__factory.connect(
       POOL_PROVIDER,
       deployer
@@ -58,19 +67,39 @@ task('verify-proposal-etherscan', 'Verify proposals')
 
     // Params
     for (let x = 0; x < reserveConfigs.length; x++) {
+      const { tokenAddress } = reserveConfigs[x];
       console.log(`- Verifying ${reserveConfigs[x].symbol} aToken implementation at ${aTokens[x]}`);
+      const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
+
+      const aTokenName = await IERC20Detailed__factory.connect(aTokenAddress, deployer).name();
+      const aTokenSymbol = await IERC20Detailed__factory.connect(aTokenAddress, deployer).symbol();
+
       await verifyContract(aTokens[x], [
         AAVE_LENDING_POOL,
         reserveConfigs[x].tokenAddress,
         TREASURY,
+        aTokenName,
+        aTokenSymbol,
         INCENTIVES_PROXY,
       ]);
       console.log(
         `- Verifying ${reserveConfigs[x].symbol} variable debt implementation at ${variableDebtTokens[x]}`
       );
+
+      const varTokenName = await IERC20Detailed__factory.connect(
+        variableDebtTokenAddress,
+        deployer
+      ).name();
+      const varTokenSymbol = await IERC20Detailed__factory.connect(
+        variableDebtTokenAddress,
+        deployer
+      ).symbol();
+
       await verifyContract(variableDebtTokens[x], [
         AAVE_LENDING_POOL,
         reserveConfigs[x].tokenAddress,
+        varTokenName,
+        varTokenSymbol,
         INCENTIVES_PROXY,
       ]);
     }
