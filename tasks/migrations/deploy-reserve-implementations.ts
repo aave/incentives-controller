@@ -1,6 +1,8 @@
 import { task } from 'hardhat/config';
-import { AaveProtocolDataProviderFactory } from '../../types/AaveProtocolDataProviderFactory';
-import { ILendingPoolAddressesProviderFactory } from '../../types/ILendingPoolAddressesProviderFactory';
+import {
+  AaveProtocolDataProvider__factory,
+  ILendingPoolAddressesProvider__factory,
+} from '../../types';
 
 task(
   'deploy-reserve-implementations',
@@ -19,8 +21,8 @@ task(
     const variableDebtTokens: string[] = [];
 
     // Instances
-    const poolProvider = await ILendingPoolAddressesProviderFactory.connect(provider, deployer);
-    const protocolDataProvider = await AaveProtocolDataProviderFactory.connect(
+    const poolProvider = await ILendingPoolAddressesProvider__factory.connect(provider, deployer);
+    const protocolDataProvider = await AaveProtocolDataProvider__factory.connect(
       await poolProvider.getAddress(
         '0x0100000000000000000000000000000000000000000000000000000000000000'
       ),

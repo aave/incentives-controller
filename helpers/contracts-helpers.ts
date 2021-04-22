@@ -15,7 +15,6 @@ import {
   iXDaiParamsPerNetwork,
 } from './types';
 import { Artifact } from 'hardhat/types';
-import { Artifact as BuidlerArtifact } from '@nomiclabs/buidler/types';
 import { verifyContract } from './etherscan-verification';
 import { usingTenderly } from './tenderly-utils';
 
@@ -111,7 +110,7 @@ export const getContract = async <ContractType extends Contract>(
   address: string
 ): Promise<ContractType> => (await DRE.ethers.getContractAt(contractName, address)) as ContractType;
 
-export const linkBytecode = (artifact: BuidlerArtifact | Artifact, libraries: any) => {
+export const linkBytecode = (artifact: Artifact, libraries: any) => {
   let bytecode = artifact.bytecode;
 
   for (const [fileName, fileReferences] of Object.entries(artifact.linkReferences)) {

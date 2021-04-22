@@ -1,8 +1,6 @@
 import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
-import { ATokenFactory } from '../../types/ATokenFactory';
-import { IERC20DetailedFactory } from '../../types/IERC20DetailedFactory';
-import { ILendingPoolDataFactory } from '../../types/ILendingPoolDataFactory';
+import { ILendingPoolData__factory, IERC20Detailed__factory, AToken__factory } from '../../types';
 
 task('deploy-atoken', 'Deploy AToken using prior reserve config')
   .addParam('pool')
@@ -16,7 +14,7 @@ task('deploy-atoken', 'Deploy AToken using prior reserve config')
       await localBRE.run('set-DRE');
       const [deployer] = await localBRE.ethers.getSigners();
 
-      const { aTokenAddress } = await ILendingPoolDataFactory.connect(
+      const { aTokenAddress } = await ILendingPoolData__factory.connect(
         pool,
         deployer
       ).getReserveData(asset);
@@ -34,13 +32,13 @@ task('deploy-atoken', 'Deploy AToken using prior reserve config')
 
       // Grab same name and symbol from old implementation
       if (!tokenName) {
-        tokenName = await IERC20DetailedFactory.connect(aTokenAddress, deployer).name();
+        tokenName = await IERC20Detailed__factory.connect(aTokenAddress, deployer).name();
       }
       if (!tokenSymbol) {
-        tokenSymbol = await IERC20DetailedFactory.connect(aTokenAddress, deployer).symbol();
+        tokenSymbol = await IERC20Detailed__factory.connect(aTokenAddress, deployer).symbol();
       }
 
-      const { address } = await new ATokenFactory(deployer).deploy(
+      const { address } = await new AToken__factory(deployer).deploy(
         pool,
         asset,
         treasury,

@@ -1,8 +1,10 @@
 import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
-import { VariableDebtTokenFactory } from '../../types';
-import { IERC20DetailedFactory } from '../../types/IERC20DetailedFactory';
-import { ILendingPoolDataFactory } from '../../types/ILendingPoolDataFactory';
+import {
+  IERC20Detailed__factory,
+  ILendingPoolData__factory,
+  VariableDebtToken__factory,
+} from '../../types';
 
 task('deploy-var-debt-token', 'Deploy AToken using prior reserve config')
   .addParam('pool')
@@ -14,7 +16,7 @@ task('deploy-var-debt-token', 'Deploy AToken using prior reserve config')
     await localBRE.run('set-DRE');
     const [deployer] = await localBRE.ethers.getSigners();
 
-    const { variableDebtTokenAddress } = await ILendingPoolDataFactory.connect(
+    const { variableDebtTokenAddress } = await ILendingPoolData__factory.connect(
       pool,
       deployer
     ).getReserveData(asset);
@@ -32,16 +34,16 @@ task('deploy-var-debt-token', 'Deploy AToken using prior reserve config')
 
     // Grab same name and symbol from old implementation
     if (!tokenName) {
-      tokenName = await IERC20DetailedFactory.connect(variableDebtTokenAddress, deployer).name();
+      tokenName = await IERC20Detailed__factory.connect(variableDebtTokenAddress, deployer).name();
     }
     if (!tokenSymbol) {
-      tokenSymbol = await IERC20DetailedFactory.connect(
+      tokenSymbol = await IERC20Detailed__factory.connect(
         variableDebtTokenAddress,
         deployer
       ).symbol();
     }
 
-    const { address } = await new VariableDebtTokenFactory(deployer).deploy(
+    const { address } = await new VariableDebtToken__factory(deployer).deploy(
       pool,
       asset,
       tokenName,

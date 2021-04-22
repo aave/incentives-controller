@@ -8,8 +8,8 @@ import { MintableErc20 } from '../types/MintableErc20';
 import { testDeployIncentivesController } from './helpers/deploy';
 import {
   StakedAaveV3,
-  StakedAaveV3Factory,
-  StakedTokenIncentivesControllerFactory,
+  StakedAaveV3__factory,
+  StakedTokenIncentivesController__factory,
 } from '../types';
 
 const topUpWalletsWithAave = async (
@@ -51,11 +51,11 @@ const buildTestEnv = async (
 
   return {
     aaveToken,
-    incentivesController: StakedTokenIncentivesControllerFactory.connect(
+    incentivesController: StakedTokenIncentivesController__factory.connect(
       incentivesProxy.address,
       deployer
     ),
-    aaveStake: StakedAaveV3Factory.connect(stakeProxy.address, deployer),
+    aaveStake: StakedAaveV3__factory.connect(stakeProxy.address, deployer),
   };
 };
 

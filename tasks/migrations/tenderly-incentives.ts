@@ -4,30 +4,17 @@ import { formatEther, parseEther, parseUnits } from 'ethers/lib/utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { JsonRpcSigner } from '@ethersproject/providers';
 import { task } from 'hardhat/config';
-import {
-  deployAaveIncentivesController,
-  deployInitializableAdminUpgradeabilityProxy,
-} from '../../helpers/contracts-accessors';
-import {
-  DRE,
-  waitForTx,
-  impersonateAccountsHardhat,
-  advanceBlockTo,
-  latestBlock,
-  increaseTime,
-} from '../../helpers/misc-utils';
+import { DRE, advanceBlockTo, latestBlock, increaseTime } from '../../helpers/misc-utils';
 import { tEthereumAddress } from '../../helpers/types';
-import { spendList, getReserveConfigs } from '../../test-fork/helpers';
+import { getReserveConfigs } from '../../test-fork/helpers';
 import {
-  StakedTokenIncentivesControllerFactory,
-  InitializableAdminUpgradeabilityProxyFactory,
-  ProposalIncentivesExecutorFactory,
-  SelfdestructTransferFactory,
+  ProposalIncentivesExecutor__factory,
+  SelfdestructTransfer__factory,
+  IERC20Detailed__factory,
+  IERC20__factory,
+  IGovernancePowerDelegationToken__factory,
 } from '../../types';
 import { IAaveGovernanceV2 } from '../../types/IAaveGovernanceV2';
-import { IERC20DetailedFactory } from '../../types/IERC20DetailedFactory';
-import { IERC20Factory } from '../../types/IERC20Factory';
-import { IGovernancePowerDelegationTokenFactory } from '../../types/IGovernancePowerDelegationTokenFactory';
 import { ILendingPool } from '../../types/ILendingPool';
 
 const {
@@ -113,10 +100,10 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
     // Deploy Proposal Executor Payload
     const {
       address: proposalExecutionPayloadAddress,
-    } = await new ProposalIncentivesExecutorFactory(proposer).deploy();
+    } = await new ProposalIncentivesExecutor__factory(proposer).deploy();
     proposalExecutionPayload = proposalExecutionPayloadAddress;
     // Send ether to the AAVE_WHALE, which is a non payable contract via selfdestruct
-    const selfDestructContract = await new SelfdestructTransferFactory(proposer).deploy();
+    const selfDestructContract = await new SelfdestructTransfer__factory(proposer).deploy();
     await (
       await selfDestructContract.destroyAndTransfer(AAVE_WHALE, {
         value: ethers.utils.parseEther('1'),
@@ -139,8 +126,8 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
       proposer
     )) as ILendingPool;
 
-    const aave = IERC20Factory.connect(AAVE_TOKEN, whale);
-    const dai = IERC20Factory.connect(DAI_TOKEN, daiHolder);
+    const aave = IERC20__factory.connect(AAVE_TOKEN, whale);
+    const dai = IERC20__factory.connect(DAI_TOKEN, daiHolder);
 
     // Transfer enough AAVE to proposer
     await (await aave.transfer(proposer.address, parseEther('2000000'))).wait();
@@ -154,8 +141,8 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
     for (let x = 0; x < reserveConfigs.length; x++) {
       const { tokenAddress, symbol } = reserveConfigs[x];
       const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
-      const aToken = IERC20DetailedFactory.connect(aTokenAddress, proposer);
-      const varDebtToken = IERC20DetailedFactory.connect(variableDebtTokenAddress, proposer);
+      const aToken = IERC20Detailed__factory.connect(aTokenAddress, proposer);
+      const varDebtToken = IERC20Detailed__factory.connect(variableDebtTokenAddress, proposer);
 
       symbols[symbol] = {
         aToken: {
@@ -173,7 +160,7 @@ task('incentives-proposal:tenderly', 'Spin a tenderly fork with incentives activ
 
     const balance = await aave.balanceOf(proposer.address);
     console.log('AAVE Balance proposer', formatEther(balance));
-    const aaveGovToken = IGovernancePowerDelegationTokenFactory.connect(AAVE_TOKEN, proposer);
+    const aaveGovToken = IGovernancePowerDelegationToken__factory.connect(AAVE_TOKEN, proposer);
     const propositionPower = await aaveGovToken.getPowerAtBlock(
       proposer.address,
       ((await latestBlock()) - 1).toString(),
