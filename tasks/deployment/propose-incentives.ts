@@ -1,6 +1,12 @@
 import { task } from 'hardhat/config';
 import { config } from 'dotenv';
 import { IAaveGovernanceV2__factory } from '../../types';
+import { Signer } from 'ethers';
+import { getDefenderRelaySigner } from '../../helpers/defender-utils';
+import { DRE } from '../../helpers/misc-utils';
+import { logError } from '../../helpers/tenderly-utils';
+import isIPFS from 'is-ipfs';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const bs58 = require('bs58');
 
@@ -13,6 +19,7 @@ task('propose-incentives', 'Create some proposals and votes')
   .addParam('aaveGovernance')
   .addParam('shortExecutor')
   .addParam('ipfsHash')
+  .addFlag('defender')
   .setAction(
     async (
       {
@@ -22,15 +29,29 @@ task('propose-incentives', 'Create some proposals and votes')
         shortExecutor,
         ipfsHash,
         proposalExecutionPayload,
+        defender,
       },
-      _DRE: any
+      localBRE: any
     ) => {
-      const proposer = (await _DRE.ethers.getSigners())[0];
+      await localBRE.run('set-DRE');
+
+      let proposer: Signer;
+      [proposer] = await localBRE.ethers.getSigners();
+
+      if (defender) {
+        const { signer } = await getDefenderRelaySigner();
+        proposer = signer;
+      }
+
+      if (!isIPFS.multihash(ipfsHash)) {
+        console.log('Please check IPFS_HASH env variable due is not valid ipfs multihash.');
+        throw Error('IPFS_HASH is not valid');
+      }
 
       aTokens = aTokens.split(',');
       variableDebtTokens = variableDebtTokens.split(',');
 
-      const callData = _DRE.ethers.utils.defaultAbiCoder.encode(
+      const callData = DRE.ethers.utils.defaultAbiCoder.encode(
         ['address[6]', 'address[6]'],
         [aTokens, variableDebtTokens]
       );
@@ -53,17 +74,7 @@ task('propose-incentives', 'Create some proposals and votes')
         console.log('- Proposal submitted to Governance');
         await tx.wait();
       } catch (error) {
-        if (_DRE.network.name.includes('tenderly')) {
-          const transactionLink = `https://dashboard.tenderly.co/${_DRE.config.tenderly.username}/${
-            _DRE.config.tenderly.project
-          }/fork/${_DRE.tenderly
-            .network()
-            .getFork()}/simulation/${_DRE.tenderly.network().getHead()}`;
-          console.error(
-            '[TENDERLY] Transaction Reverted. Check TX simulation error at:',
-            transactionLink
-          );
-        }
+        logError();
         throw error;
       }
 

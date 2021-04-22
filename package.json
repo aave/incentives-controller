@@ -64,6 +64,7 @@
     "hardhat": "^2.1.2",
     "hardhat-gas-reporter": "^1.0.0",
     "husky": "^4.2.5",
+    "is-ipfs": "^5.0.0",
     "lowdb": "1.0.0",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-alpha.53",

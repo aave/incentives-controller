@@ -11,6 +11,7 @@ import { parseUnits } from 'ethers/lib/utils';
 import { MAX_UINT_AMOUNT } from '../helpers/constants';
 import { DRE } from '../helpers/misc-utils';
 import { ILendingPool } from '../types/ILendingPool';
+import { Signer } from 'ethers/lib/ethers';
 
 export const spendList = {
   DAI: {
@@ -54,7 +55,7 @@ export const spendList = {
 export const getReserveConfigs = async (
   poolProviderAddress: tEthereumAddress,
   reserves: string,
-  proposer: SignerWithAddress
+  proposer: Signer
 ) => {
   const poolProvider = await ILendingPoolAddressesProvider__factory.connect(
     poolProviderAddress,

@@ -12,7 +12,8 @@ task(
   .addParam('assets')
   .addParam('incentivesController')
   .addParam('treasury')
-  .setAction(async ({ provider, assets, incentivesController, treasury }, localBRE) => {
+  .addFlag('defender')
+  .setAction(async ({ defender, provider, assets, incentivesController, treasury }, localBRE) => {
     await localBRE.run('set-DRE');
     const [deployer] = await localBRE.ethers.getSigners();
     const tokensToUpdate = assets.split(',');
@@ -48,12 +49,14 @@ task(
         asset: reserveConfigs[x].tokenAddress,
         treasury,
         incentivesController,
+        defender,
       });
       console.log(`- Deployed ${reserveConfigs[x].symbol} AToken impl`);
       variableDebtTokens[x] = await localBRE.run('deploy-var-debt-token', {
         pool,
         asset: reserveConfigs[x].tokenAddress,
         incentivesController,
+        defender,
       });
       console.log(`- Deployed ${reserveConfigs[x].symbol} Variable Debt Token impl`);
     }

@@ -1,5 +1,7 @@
+import { Signer } from 'ethers';
 import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
+import { getDefenderRelaySigner } from '../../helpers/defender-utils';
 import { ILendingPoolData__factory, IERC20Detailed__factory, AToken__factory } from '../../types';
 
 task('deploy-atoken', 'Deploy AToken using prior reserve config')
@@ -9,10 +11,21 @@ task('deploy-atoken', 'Deploy AToken using prior reserve config')
   .addParam('incentivesController')
   .addOptionalParam('tokenName')
   .addOptionalParam('tokenSymbol')
+  .addFlag('defender')
   .setAction(
-    async ({ pool, asset, treasury, incentivesController, tokenName, tokenSymbol }, localBRE) => {
+    async (
+      { defender, pool, asset, treasury, incentivesController, tokenName, tokenSymbol },
+      localBRE
+    ) => {
       await localBRE.run('set-DRE');
-      const [deployer] = await localBRE.ethers.getSigners();
+
+      let deployer: Signer;
+      [deployer] = await localBRE.ethers.getSigners();
+
+      if (defender) {
+        const { signer } = await getDefenderRelaySigner();
+        deployer = signer;
+      }
 
       const { aTokenAddress } = await ILendingPoolData__factory.connect(
         pool,
