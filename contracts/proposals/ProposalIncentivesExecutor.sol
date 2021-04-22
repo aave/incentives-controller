@@ -30,8 +30,6 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
   uint256 constant DISTRIBUTION_DURATION = 7776000; // 90 days
   uint256 constant DISTRIBUTION_AMOUNT = 198000000000000000000000; // 198000 AAVE during 90 days
 
-  uint256 constant TOTAL_EMISSION_PER_SECOND = DISTRIBUTION_AMOUNT / DISTRIBUTION_DURATION;
-
   function execute(
     address[6] memory aTokenImplementations,
     address[6] memory variableDebtImplementations
@@ -75,10 +73,10 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
     ILendingPoolAddressesProvider provider = ILendingPoolAddressesProvider(ADDRESSES_PROVIDER);
 
     //adding the incentives controller proxy to the addresses provider
-    provider.setAddress('INCENTIVES_CONTROLLER', INCENTIVES_CONTROLLER_PROXY_ADDRESS);
+    provider.setAddress(keccak256('INCENTIVES_CONTROLLER'), INCENTIVES_CONTROLLER_PROXY_ADDRESS);
 
     //updating the implementation of the incentives controller proxy
-    provider.setAddressAsProxy('INCENTIVES_CONTROLLER', INCENTIVES_CONTROLLER_IMPL_ADDRESS);
+    provider.setAddressAsProxy(keccak256('INCENTIVES_CONTROLLER'), INCENTIVES_CONTROLLER_IMPL_ADDRESS);
 
     require(
       aTokenImplementations.length == variableDebtImplementations.length &&
@@ -105,15 +103,11 @@ contract ProposalIncentivesExecutor is IProposalIncentivesExecutor {
       // Update variable debt impl
       poolConfigurator.updateVariableDebtToken(reserves[x], variableDebtImplementations[x]);
 
-      assets[tokensCounter] = reserveData.aTokenAddress;
-
-      // Configure aToken at incentives controller
-      tokensCounter++;
+      assets[tokensCounter++] = reserveData.aTokenAddress;
 
       // Configure variable debt token at incentives controller
-      assets[tokensCounter] = reserveData.variableDebtTokenAddress;
+      assets[tokensCounter++] = reserveData.variableDebtTokenAddress;
 
-      tokensCounter++;
     }
     // Transfer AAVE funds to the Incentives Controller
     ecosystemReserveController.transfer(
