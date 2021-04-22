@@ -51,14 +51,16 @@ task(
         incentivesController,
         defender,
       });
-      console.log(`- Deployed ${reserveConfigs[x].symbol} AToken impl`);
+      console.log(`- Deployed ${reserveConfigs[x].symbol} AToken impl at: ${aTokens[x]}`);
       variableDebtTokens[x] = await localBRE.run('deploy-var-debt-token', {
         pool,
         asset: reserveConfigs[x].tokenAddress,
         incentivesController,
         defender,
       });
-      console.log(`- Deployed ${reserveConfigs[x].symbol} Variable Debt Token impl`);
+      console.log(
+        `- Deployed ${reserveConfigs[x].symbol} Variable Debt Token impl at: ${variableDebtTokens[x]}`
+      );
     }
 
     return {

@@ -57,7 +57,7 @@ const getCommonNetworkConfig = (networkName: eNetwork, networkId: number) => ({
 
 const mainnetFork = MAINNET_FORK
   ? {
-      blockNumber: 12276538,
+      blockNumber: 12290275,
       url: NETWORKS_RPC_URL['main'],
     }
   : undefined;
@@ -120,7 +120,8 @@ const buidlerConfig: HardhatUserConfig = {
       hardfork: 'istanbul',
       blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
       gas: DEFAULT_BLOCK_GAS_LIMIT,
-      gasPrice: 8000000000,
+      gasPrice:
+        NETWORKS_DEFAULT_GAS[MAINNET_FORK ? eEthereumNetwork.main : eEthereumNetwork.hardhat],
       chainId: BUIDLEREVM_CHAINID,
       throwOnTransactionFailures: true,
       throwOnCallFailures: true,

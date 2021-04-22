@@ -1,17 +1,31 @@
+import { formatEther } from '@ethersproject/units';
 import { DefenderRelaySigner, DefenderRelayProvider } from 'defender-relay-client/lib/ethers';
+import { Signer } from 'ethers';
+import { DRE, impersonateAccountsHardhat } from './misc-utils';
 
 export const getDefenderRelaySigner = async () => {
   const { DEFENDER_API_KEY, DEFENDER_SECRET_KEY } = process.env;
+  let signer: Signer;
 
   if (!DEFENDER_API_KEY || !DEFENDER_SECRET_KEY) {
     throw new Error('Defender secrets required');
   }
 
   const credentials = { apiKey: DEFENDER_API_KEY, apiSecret: DEFENDER_SECRET_KEY };
-  const signer = new DefenderRelaySigner(credentials, new DefenderRelayProvider(credentials), {
+
+  signer = new DefenderRelaySigner(credentials, new DefenderRelayProvider(credentials), {
     speed: 'fast',
   });
-  const address = await signer.getAddress();
 
-  return { signer, address };
+  const defenderAddress = await signer.getAddress();
+
+  // Reemplace signer if MAINNET_FORK is active
+  if (process.env.MAINNET_FORK === 'true') {
+    console.log('  - Impersonating Defender Relay');
+    await impersonateAccountsHardhat([defenderAddress]);
+    signer = await DRE.ethers.getSigner(defenderAddress);
+  }
+  console.log('  - Balance: ', formatEther(await signer.getBalance()));
+
+  return { signer, address: defenderAddress };
 };

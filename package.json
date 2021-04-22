@@ -26,7 +26,8 @@
     "compile": "SKIP_LOAD=true hardhat compile",
     "console:fork": "MAINNET_FORK=true hardhat console",
     "prepublishOnly": "npm run compile",
-    "deploy:incentives-controller-impl:main": "npm run hardhat:main -- deploy-incentives-impl"
+    "deploy:incentives-controller-impl:main": "npm run hardhat:main -- deploy-incentives-impl",
+    "submit-proposal:mainner": "npx hardhat --network main incentives-submit-proposal:mainnet --defender  --proposal-execution-payload 0x5778DAee2a634acd303dC9dC91e58D57C8FFfcC8 --a-tokens 0x7b2a3CF972C3193F26CdeC6217D27379b6417bD0,0xE994d6d8595741a6245bC3197fD66C10a3E75C5f,0x1C050bCa8BAbe53Ef769d0d2e411f556e1a27E7B,0x3F06560cfB7af6E6B5102c358f679DE5150b3b4C,0xC2fcab14Ec1F2dFA82a23C639c4770345085a50F,0x541dCd3F00Bcd1A683cc73E1b2A8693b602201f4 --variable-debt-tokens 0x3F87b818f94F3cC21e47FD3Bf015E8D8183A3E08,0x4aBF3e82D5f45A8D8E8C48B544bcA562e20EE2ff,0x1f57Cc62113C3a6346882DcF3Ed49120411ac2d2,0x99E81EDbcab512d393638C087fD29c3DC6c9B00E,0x52fdFB1157878f540DCB961561ce5F3b0bbe6f80,0xDddE1FA049209Bc24B69D5fa316a56EfeC918D79"
   },
   "repository": {
     "type": "git",
@@ -65,6 +66,7 @@
     "hardhat-gas-reporter": "^1.0.0",
     "husky": "^4.2.5",
     "is-ipfs": "^5.0.0",
+    "kebab-case": "^1.0.1",
     "lowdb": "1.0.0",
     "prettier": "^2.0.5",
     "prettier-plugin-solidity": "^1.0.0-alpha.53",
