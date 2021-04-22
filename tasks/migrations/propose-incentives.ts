@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config';
 import { config } from 'dotenv';
-import { IAaveGovernanceV2Factory } from '../../types/IAaveGovernanceV2Factory';
+import { IAaveGovernanceV2__factory } from '../../types';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const bs58 = require('bs58');
 
@@ -36,7 +36,7 @@ task('propose-incentives', 'Create some proposals and votes')
       );
 
       const executeSignature = 'execute(address[6],address[6])';
-      const gov = await IAaveGovernanceV2Factory.connect(aaveGovernance, proposer);
+      const gov = await IAaveGovernanceV2__factory.connect(aaveGovernance, proposer);
       const ipfsEncoded = `0x${bs58.decode(ipfsHash).slice(2).toString('hex')}`;
 
       try {

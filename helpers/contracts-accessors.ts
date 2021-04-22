@@ -12,9 +12,9 @@ import { IERC20Detailed } from '../types/IERC20Detailed';
 import { verifyContract } from './etherscan-verification';
 import { ATokenMock } from '../types/ATokenMock';
 import {
-  InitializableAdminUpgradeabilityProxyFactory,
+  InitializableAdminUpgradeabilityProxy__factory,
   StakedTokenIncentivesController,
-  StakedTokenIncentivesControllerFactory,
+  StakedTokenIncentivesController__factory,
 } from '../types';
 import { DefenderRelaySigner } from 'defender-relay-client/lib/ethers';
 import { Signer } from 'ethers';
@@ -26,7 +26,7 @@ export const deployAaveIncentivesController = async (
 ) => {
   const id = eContractid.StakedTokenIncentivesController;
   const args: [string, string] = [aavePsm, emissionManager];
-  const instance = await new StakedTokenIncentivesControllerFactory(
+  const instance = await new StakedTokenIncentivesController__factory(
     signer || (await getFirstSigner())
   ).deploy(...args);
   await instance.deployTransaction.wait();
@@ -38,7 +38,7 @@ export const deployAaveIncentivesController = async (
 
 export const deployInitializableAdminUpgradeabilityProxy = async (verify?: boolean) => {
   const args: string[] = [];
-  const instance = await new InitializableAdminUpgradeabilityProxyFactory(
+  const instance = await new InitializableAdminUpgradeabilityProxy__factory(
     await getFirstSigner()
   ).deploy();
   await instance.deployTransaction.wait();
@@ -61,6 +61,9 @@ export const getMintableErc20 = getContractFactory<MintableErc20>(eContractid.Mi
 export const getAaveIncentivesController = getContractFactory<StakedTokenIncentivesController>(
   eContractid.StakedTokenIncentivesController
 );
+
+export const getIncentivesController = async (address: tEthereumAddress) =>
+  StakedTokenIncentivesController__factory.connect(address, await getFirstSigner());
 
 export const getIErc20Detailed = getContractFactory<IERC20Detailed>(eContractid.IERC20Detailed);
 
