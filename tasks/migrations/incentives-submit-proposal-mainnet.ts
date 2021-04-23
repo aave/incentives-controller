@@ -29,7 +29,7 @@ task('incentives-submit-proposal:mainnet', 'Submit the incentives proposal to Aa
         proposer = signer;
       }
 
-      if (!AAVE_TOKEN || || !AAVE_GOVERNANCE_V2 || !AAVE_SHORT_EXECUTOR) {
+      if (!AAVE_TOKEN || !AAVE_GOVERNANCE_V2 || !AAVE_SHORT_EXECUTOR) {
         throw new Error(
           'You have not set correctly the .env file, make sure to read the README.md'
         );
