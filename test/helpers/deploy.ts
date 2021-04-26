@@ -41,6 +41,7 @@ export const testDeployIncentivesController = async (
 
   // Initialize proxies
   const aaveStakeInit = aaveStakeV3.interface.encodeFunctionData(
+    // @ts-ignore
     'initialize(address,address,address,uint256,string,string,uint8)',
     [emissionManager, emissionManager, emissionManager, '2000', 'Staked AAVE', 'stkAAVE', '18']
   );
