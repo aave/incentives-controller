@@ -20,10 +20,15 @@ export async function getAssetsData(
   assets: string[]
 ) {
   return await Promise.all(
-    assets.map(async (underlyingAsset) => ({
-      ...(await peiContract.assets(underlyingAsset)),
-      underlyingAsset,
-    }))
+    assets.map(async (underlyingAsset) => {
+      const response = await peiContract.assets(underlyingAsset);
+      return {
+        emissionPerSecond: response.emissionPerSecond,
+        lastUpdateTimestamp: BigNumber.from(response.lastUpdateTimestamp.toString()),
+        index: BigNumber.from(response.index.toString()),
+        underlyingAsset,
+      };
+    })
   );
 }
 
