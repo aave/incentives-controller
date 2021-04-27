@@ -21,11 +21,11 @@ export async function getAssetsData(
 ) {
   return await Promise.all(
     assets.map(async (underlyingAsset) => {
-      const response = await peiContract.assets(underlyingAsset);
+      const response = await peiContract.getAssetData(underlyingAsset);
       return {
-        emissionPerSecond: response.emissionPerSecond,
-        lastUpdateTimestamp: BigNumber.from(response.lastUpdateTimestamp.toString()),
-        index: BigNumber.from(response.index.toString()),
+        emissionPerSecond: response[1],
+        lastUpdateTimestamp: response[2],
+        index: response[0],
         underlyingAsset,
       };
     })

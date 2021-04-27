@@ -72,7 +72,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
       await increaseTime(100);
       const { aaveIncentivesController, stakedAave, aDaiMock } = testEnv;
 
-      const distributionEndTimestamp = await aaveIncentivesController.DISTRIBUTION_END();
+      const distributionEndTimestamp = await aaveIncentivesController.getDistributionEnd();
       const userAddress = await aaveIncentivesController.signer.getAddress();
 
       const underlyingAsset = aDaiMock.address;

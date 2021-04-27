@@ -19,13 +19,11 @@ export function getNormalizedDistribution(
   emissionEndTimestamp: BigNumberValue,
   precision: number = 18
 ): BigNumber {
-  console.log('JS gettin asset index');
   if (
     balance.toString() === '0' ||
     emissionPerSecond.toString() === '0' ||
     valueToZDBigNumber(lastUpdateTimestamp).gte(emissionEndTimestamp.toString())
   ) {
-    console.log('JS here?');
     return valueToZDBigNumber(oldIndex);
   }
   const linearReward = getLinearCumulatedRewards(

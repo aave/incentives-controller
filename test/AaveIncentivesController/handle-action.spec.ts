@@ -72,8 +72,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
 
       const distributionEndTimestamp = await aaveIncentivesController.DISTRIBUTION_END();
 
-      const rewardsBalanceBefore = await aaveIncentivesController.getRewardsBalance(
-        [underlyingAsset],
+      const rewardsBalanceBefore = await aaveIncentivesController.getUserUnclaimedRewards(
         userAddress
       );
       const userIndexBefore = await getUserIndex(
@@ -108,8 +107,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         userIndexBefore
       ).toString();
 
-      const rewardsBalanceAfter = await aaveIncentivesController.getRewardsBalance(
-        [underlyingAsset],
+      const rewardsBalanceAfter = await aaveIncentivesController.getUserUnclaimedRewards(
         userAddress
       );
 
