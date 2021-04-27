@@ -72,7 +72,8 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
 
       const distributionEndTimestamp = await aaveIncentivesController.DISTRIBUTION_END();
 
-      const rewardsBalanceBefore = await aaveIncentivesController.getUserUnclaimedRewards(
+      const rewardsBalanceBefore = await aaveIncentivesController.getRewardsBalance(
+        [underlyingAsset],
         userAddress
       );
       const userIndexBefore = await getUserIndex(
@@ -86,6 +87,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         await increaseTime(customTimeMovement);
       }
 
+      await waitForTx(await aDaiMock.setUserBalanceAndSupply(userBalance, totalSupply));
       const handleActionReceipt = await waitForTx(
         await aDaiMock.handleActionOnAic(userAddress, userBalance, totalSupply)
       );
@@ -97,6 +99,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
+
       const assetDataAfter = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       const expectedAccruedRewards = getRewards(
@@ -105,7 +108,8 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         userIndexBefore
       ).toString();
 
-      const rewardsBalanceAfter = await aaveIncentivesController.getUserUnclaimedRewards(
+      const rewardsBalanceAfter = await aaveIncentivesController.getRewardsBalance(
+        [underlyingAsset],
         userAddress
       );
 

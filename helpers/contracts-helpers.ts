@@ -213,7 +213,7 @@ export const getContractFactory = <ContractType extends Contract>(
 
 export const getBlockTimestamp = async (blockNumber?: number): Promise<number> => {
   if (!blockNumber) {
-    throw new Error('No block number passed');
+    blockNumber = await getCurrentBlock();
   }
   const block = await DRE.ethers.provider.getBlock(blockNumber);
   return block.timestamp;
