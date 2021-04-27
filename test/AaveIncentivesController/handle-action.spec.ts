@@ -89,7 +89,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
 
       await waitForTx(await aDaiMock.setUserBalanceAndSupply(userBalance, totalSupply));
       const handleActionReceipt = await waitForTx(
-        await aDaiMock.handleActionOnAic(userAddress, userBalance, totalSupply)
+        await aDaiMock.handleActionOnAic(userAddress, totalSupply, userBalance)
       );
       const eventsEmitted = handleActionReceipt.events || [];
       const actionBlockTimestamp = await getBlockTimestamp(handleActionReceipt.blockNumber);

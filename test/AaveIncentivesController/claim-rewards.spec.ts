@@ -88,7 +88,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
 
       const destinationAddressBalanceBefore = await stakedAave.balanceOf(destinationAddress);
       await aDaiMock.setUserBalanceAndSupply(stakedByUser, totalStaked);
-      await aDaiMock.handleActionOnAic(userAddress, stakedByUser, totalStaked);
+      await aDaiMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
 
       const unclaimedRewardsBefore = await aaveIncentivesController.getRewardsBalance(
         [underlyingAsset],
