@@ -47,7 +47,7 @@ makeSuite('AaveIncentivesController getRewardsBalance tests', (testEnv) => {
         await aDaiMock.setUserBalanceAndSupply('0', totalStaked);
         await aaveIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
       }
-      await aDaiMock.handleActionOnAic(userAddress, stakedByUser, totalStaked);
+      await aDaiMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
       await advanceBlock((await timeLatest()).plus(100).toNumber());
 
       const lastTxReceipt = await waitForTx(

@@ -21,6 +21,7 @@ export function getNormalizedDistribution(
 ): BigNumber {
   if (
     balance.toString() === '0' ||
+    emissionPerSecond.toString() === '0' ||
     valueToZDBigNumber(lastUpdateTimestamp).gte(emissionEndTimestamp.toString())
   ) {
     return valueToZDBigNumber(oldIndex);

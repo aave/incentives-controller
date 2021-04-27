@@ -2,6 +2,7 @@ import { BigNumber, BigNumberish } from 'ethers';
 import { comparatorEngine, CompareRules } from '../../helpers/comparator-engine';
 import { getNormalizedDistribution } from '../../helpers/ray-math';
 import { AaveDistributionManager } from '../../../types/AaveDistributionManager';
+import { StakedTokenIncentivesController } from '../../../types';
 
 export type AssetUpdateData = {
   emissionPerSecond: BigNumberish;
@@ -15,14 +16,19 @@ export type AssetData = {
 };
 
 export async function getAssetsData(
-  peiContract: AaveDistributionManager | AaveIncentivesController | StakedAave,
+  peiContract: AaveDistributionManager | StakedTokenIncentivesController,
   assets: string[]
 ) {
   return await Promise.all(
-    assets.map(async (underlyingAsset) => ({
-      ...(await peiContract.assets(underlyingAsset)),
-      underlyingAsset,
-    }))
+    assets.map(async (underlyingAsset) => {
+      const response = await peiContract.getAssetData(underlyingAsset);
+      return {
+        emissionPerSecond: response[1],
+        lastUpdateTimestamp: response[2],
+        index: response[0],
+        underlyingAsset,
+      };
+    })
   );
 }
 

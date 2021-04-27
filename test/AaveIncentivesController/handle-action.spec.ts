@@ -86,8 +86,9 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         await increaseTime(customTimeMovement);
       }
 
+      await waitForTx(await aDaiMock.setUserBalanceAndSupply(userBalance, totalSupply));
       const handleActionReceipt = await waitForTx(
-        await aDaiMock.handleActionOnAic(userAddress, userBalance, totalSupply)
+        await aDaiMock.handleActionOnAic(userAddress, totalSupply, userBalance)
       );
       const eventsEmitted = handleActionReceipt.events || [];
       const actionBlockTimestamp = await getBlockTimestamp(handleActionReceipt.blockNumber);
@@ -97,6 +98,7 @@ makeSuite('AaveIncentivesController handleAction tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
+
       const assetDataAfter = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       const expectedAccruedRewards = getRewards(
