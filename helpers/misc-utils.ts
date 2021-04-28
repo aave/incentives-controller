@@ -40,6 +40,10 @@ export const timeLatest = async () => {
 };
 
 export const increaseTime = async (secondsToIncrease: number) => {
+  if (process.env.TENDERLY === 'true') {
+    await DRE.ethers.provider.send('evm_increaseTime', [`0x${secondsToIncrease.toString(16)}`]);
+    return;
+  }
   await DRE.ethers.provider.send('evm_increaseTime', [secondsToIncrease]);
   await DRE.ethers.provider.send('evm_mine', []);
 };
@@ -123,20 +127,11 @@ export const advanceBlockTo = async (target: number) => {
   const currentBlock = await latestBlock();
   if (process.env.TENDERLY === 'true') {
     const pendingBlocks = target - currentBlock - 1;
-    console.log(pendingBlocks);
-    console.log('prior', currentBlock);
-
-    console.log(DRE.tenderly.network().getHead());
 
     const response = await DRE.ethers.provider.send('evm_increaseBlocks', [
       `0x${pendingBlocks.toString(16)}`,
     ]);
 
-    console.log(DRE.tenderly.network().getHead());
-    // setNewHead(response);
-    const newbLock = await latestBlock();
-
-    console.log('newBlock', newbLock);
     return;
   }
   const start = Date.now();

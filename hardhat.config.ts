@@ -13,9 +13,10 @@ import '@nomiclabs/hardhat-ethers';
 import '@nomiclabs/hardhat-waffle';
 import 'temp-hardhat-etherscan';
 import 'hardhat-gas-reporter';
-import 'hardhat-typechain';
+import '@typechain/hardhat';
 import '@tenderly/hardhat-tenderly';
 import 'hardhat-deploy';
+import 'solidity-coverage';
 
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true';
 const DEFAULT_BLOCK_GAS_LIMIT = 12450000;
@@ -57,7 +58,7 @@ const getCommonNetworkConfig = (networkName: eNetwork, networkId: number) => ({
 
 const mainnetFork = MAINNET_FORK
   ? {
-      blockNumber: 12198673,
+      blockNumber: 12290275,
       url: NETWORKS_RPC_URL['main'],
     }
   : undefined;
@@ -120,7 +121,8 @@ const buidlerConfig: HardhatUserConfig = {
       hardfork: 'istanbul',
       blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
       gas: DEFAULT_BLOCK_GAS_LIMIT,
-      gasPrice: 8000000000,
+      gasPrice:
+        NETWORKS_DEFAULT_GAS[MAINNET_FORK ? eEthereumNetwork.main : eEthereumNetwork.hardhat],
       chainId: BUIDLEREVM_CHAINID,
       throwOnTransactionFailures: true,
       throwOnCallFailures: true,

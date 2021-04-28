@@ -65,15 +65,14 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
     caseName,
     amountToClaim: _amountToClaim,
     to,
-    toStake,
     emissionPerSecond,
   } of getRewardsBalanceScenarios) {
     let amountToClaim = _amountToClaim;
     it(caseName, async () => {
       await increaseTime(100);
-      const { aaveIncentivesController, stakedAave, aaveToken, aDaiMock } = testEnv;
+      const { aaveIncentivesController, stakedAave, aDaiMock } = testEnv;
 
-      const distributionEndTimestamp = await aaveIncentivesController.DISTRIBUTION_END();
+      const distributionEndTimestamp = await aaveIncentivesController.getDistributionEnd();
       const userAddress = await aaveIncentivesController.signer.getAddress();
 
       const underlyingAsset = aDaiMock.address;
@@ -82,18 +81,17 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
 
       // update emissionPerSecond in advance to not affect user calculations
       if (emissionPerSecond) {
-        await aaveIncentivesController.configureAssets([
-          { emissionPerSecond, underlyingAsset, totalStaked },
-        ]);
+        await aaveIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
       }
 
       const destinationAddress = to || userAddress;
 
-      const destinationAddressBalanceBefore = await (toStake ? stakedAave : aaveToken).balanceOf(
-        destinationAddress
-      );
+      const destinationAddressBalanceBefore = await stakedAave.balanceOf(destinationAddress);
       await aDaiMock.setUserBalanceAndSupply(stakedByUser, totalStaked);
-      const unclaimedRewardsBefore = await aaveIncentivesController.getUserUnclaimedRewards(
+      await aDaiMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
+
+      const unclaimedRewardsBefore = await aaveIncentivesController.getRewardsBalance(
+        [underlyingAsset],
         userAddress
       );
       const userIndexBefore = await getUserIndex(
@@ -101,9 +99,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
-      const assetDataBefore = (
-        await getAssetsData(aaveIncentivesController, [{ underlyingAsset }])
-      )[0];
+      const assetDataBefore = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       const claimRewardsReceipt = await waitForTx(
         await aaveIncentivesController.claimRewards(
@@ -113,6 +109,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         )
       );
       const eventsEmitted = claimRewardsReceipt.events || [];
+
       const actionBlockTimestamp = await getBlockTimestamp(claimRewardsReceipt.blockNumber);
 
       const userIndexAfter = await getUserIndex(
@@ -120,17 +117,14 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         userAddress,
         underlyingAsset
       );
-      const assetDataAfter = (
-        await getAssetsData(aaveIncentivesController, [{ underlyingAsset }])
-      )[0];
+      const assetDataAfter = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
-      const unclaimedRewardsAfter = await aaveIncentivesController.getUserUnclaimedRewards(
+      const unclaimedRewardsAfter = await aaveIncentivesController.getRewardsBalance(
+        [underlyingAsset],
         userAddress
       );
 
-      const destinationAddressBalanceAfter = await (toStake ? stakedAave : aaveToken).balanceOf(
-        destinationAddress
-      );
+      const destinationAddressBalanceAfter = await stakedAave.balanceOf(destinationAddress);
 
       const claimedAmount = destinationAddressBalanceAfter.sub(destinationAddressBalanceBefore);
 
@@ -211,7 +205,6 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         );
       }
 
-
       expect(claimedAmount.toString()).to.be.equal(
         expectedClaimedAmount.toString(),
         'claimed amount are wrong'
@@ -237,6 +230,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
           eventChecker(rewardsClaimedEvent, 'RewardsClaimed', [
             userAddress,
             destinationAddress,
+            userAddress,
             expectedClaimedAmount,
           ]);
         } else {

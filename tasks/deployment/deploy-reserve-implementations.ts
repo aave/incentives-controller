@@ -1,6 +1,8 @@
 import { task } from 'hardhat/config';
-import { AaveProtocolDataProviderFactory } from '../../types/AaveProtocolDataProviderFactory';
-import { ILendingPoolAddressesProviderFactory } from '../../types/ILendingPoolAddressesProviderFactory';
+import {
+  AaveProtocolDataProvider__factory,
+  ILendingPoolAddressesProvider__factory,
+} from '../../types';
 
 task(
   'deploy-reserve-implementations',
@@ -10,7 +12,8 @@ task(
   .addParam('assets')
   .addParam('incentivesController')
   .addParam('treasury')
-  .setAction(async ({ provider, assets, incentivesController, treasury }, localBRE) => {
+  .addFlag('defender')
+  .setAction(async ({ defender, provider, assets, incentivesController, treasury }, localBRE) => {
     await localBRE.run('set-DRE');
     const [deployer] = await localBRE.ethers.getSigners();
     const tokensToUpdate = assets.split(',');
@@ -19,8 +22,8 @@ task(
     const variableDebtTokens: string[] = [];
 
     // Instances
-    const poolProvider = await ILendingPoolAddressesProviderFactory.connect(provider, deployer);
-    const protocolDataProvider = await AaveProtocolDataProviderFactory.connect(
+    const poolProvider = await ILendingPoolAddressesProvider__factory.connect(provider, deployer);
+    const protocolDataProvider = await AaveProtocolDataProvider__factory.connect(
       await poolProvider.getAddress(
         '0x0100000000000000000000000000000000000000000000000000000000000000'
       ),
@@ -46,14 +49,18 @@ task(
         asset: reserveConfigs[x].tokenAddress,
         treasury,
         incentivesController,
+        defender,
       });
-      console.log(`- Deployed ${reserveConfigs[x].symbol} AToken impl`);
+      console.log(`- Deployed ${reserveConfigs[x].symbol} AToken impl at: ${aTokens[x]}`);
       variableDebtTokens[x] = await localBRE.run('deploy-var-debt-token', {
         pool,
         asset: reserveConfigs[x].tokenAddress,
         incentivesController,
+        defender,
       });
-      console.log(`- Deployed ${reserveConfigs[x].symbol} Variable Debt Token impl`);
+      console.log(
+        `- Deployed ${reserveConfigs[x].symbol} Variable Debt Token impl at: ${variableDebtTokens[x]}`
+      );
     }
 
     return {

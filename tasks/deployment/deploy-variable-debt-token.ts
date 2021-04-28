@@ -1,9 +1,12 @@
+import { Signer } from 'ethers/lib/ethers';
 import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
-import { VariableDebtTokenFactory } from '../../types';
-import { IERC20DetailedFactory } from '../../types/IERC20DetailedFactory';
-import { IERC20Factory } from '../../types/IERC20Factory';
-import { ILendingPoolDataFactory } from '../../types/ILendingPoolDataFactory';
+import { getDefenderRelaySigner } from '../../helpers/defender-utils';
+import {
+  IERC20Detailed__factory,
+  ILendingPoolData__factory,
+  VariableDebtToken__factory,
+} from '../../types';
 
 task('deploy-var-debt-token', 'Deploy AToken using prior reserve config')
   .addParam('pool')
@@ -11,44 +14,57 @@ task('deploy-var-debt-token', 'Deploy AToken using prior reserve config')
   .addParam('incentivesController')
   .addOptionalParam('tokenName')
   .addOptionalParam('tokenSymbol')
-  .setAction(async ({ pool, asset, incentivesController, tokenName, tokenSymbol }, localBRE) => {
-    await localBRE.run('set-DRE');
-    const [deployer] = await localBRE.ethers.getSigners();
+  .addFlag('defender')
+  .setAction(
+    async ({ defender, pool, asset, incentivesController, tokenName, tokenSymbol }, localBRE) => {
+      await localBRE.run('set-DRE');
 
-    const { variableDebtTokenAddress } = await ILendingPoolDataFactory.connect(
-      pool,
-      deployer
-    ).getReserveData(asset);
+      let deployer: Signer;
+      [deployer] = await localBRE.ethers.getSigners();
 
-    if (!tokenSymbol && variableDebtTokenAddress === ZERO_ADDRESS) {
-      throw new Error(
-        "Reserve does not exists or not initialized. Pass 'tokenSymbol' as param to the task.'"
-      );
-    }
-    if (!tokenName && variableDebtTokenAddress === ZERO_ADDRESS) {
-      throw new Error(
-        "Reserve does not exists or not initialized. Pass 'tokenName' as param to the task.'"
-      );
-    }
+      if (defender) {
+        const { signer } = await getDefenderRelaySigner();
+        deployer = signer;
+      }
 
-    // Grab same name and symbol from old implementation
-    if (!tokenName) {
-      tokenName = await IERC20DetailedFactory.connect(variableDebtTokenAddress, deployer).name();
-    }
-    if (!tokenSymbol) {
-      tokenSymbol = await IERC20DetailedFactory.connect(
-        variableDebtTokenAddress,
+      const { variableDebtTokenAddress } = await ILendingPoolData__factory.connect(
+        pool,
         deployer
-      ).symbol();
+      ).getReserveData(asset);
+
+      if (!tokenSymbol && variableDebtTokenAddress === ZERO_ADDRESS) {
+        throw new Error(
+          "Reserve does not exists or not initialized. Pass 'tokenSymbol' as param to the task.'"
+        );
+      }
+      if (!tokenName && variableDebtTokenAddress === ZERO_ADDRESS) {
+        throw new Error(
+          "Reserve does not exists or not initialized. Pass 'tokenName' as param to the task.'"
+        );
+      }
+
+      // Grab same name and symbol from old implementation
+      if (!tokenName) {
+        tokenName = await IERC20Detailed__factory.connect(
+          variableDebtTokenAddress,
+          deployer
+        ).name();
+      }
+      if (!tokenSymbol) {
+        tokenSymbol = await IERC20Detailed__factory.connect(
+          variableDebtTokenAddress,
+          deployer
+        ).symbol();
+      }
+
+      const { address } = await new VariableDebtToken__factory(deployer).deploy(
+        pool,
+        asset,
+        tokenName,
+        tokenSymbol,
+        incentivesController
+      );
+
+      return address;
     }
-
-    const { address } = await new VariableDebtTokenFactory(deployer).deploy(
-      pool,
-      asset,
-      tokenName,
-      tokenSymbol,
-      incentivesController
-    );
-
-    return address;
-  });
+  );

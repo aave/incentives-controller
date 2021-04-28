@@ -5,9 +5,11 @@ import { formatEther, parseEther, parseUnits } from 'ethers/lib/utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { JsonRpcSigner } from '@ethersproject/providers';
 
-import { DRE } from '../helpers/misc-utils';
+import { DRE, waitForTx } from '../helpers/misc-utils';
 import {
+  evmSnapshot,
   increaseTime,
+  evmRevert,
   latestBlock,
   advanceBlockTo,
   impersonateAccountsHardhat,
@@ -20,6 +22,7 @@ import {
   StakedTokenIncentivesControllerFactory,
   AToken,
   ATokenFactory,
+  InitializableAdminUpgradeabilityProxyFactory,
   ProposalIncentivesExecutorFactory,
   SelfdestructTransferFactory,
 } from '../types';
@@ -30,9 +33,11 @@ import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
 import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
 import { IERC20DetailedFactory } from '../types/IERC20DetailedFactory';
 import { fullCycleLendingPool, getReserveConfigs, spendList } from './helpers';
-import { deployAaveIncentivesController } from '../helpers/contracts-accessors';
-import { IGovernancePowerDelegationTokenFactory } from '../types/IGovernancePowerDelegationTokenFactory';
-import { logError } from '../helpers/tenderly-utils';
+import {
+  deployAaveIncentivesController,
+  deployInitializableAdminUpgradeabilityProxy,
+} from '../helpers/contracts-accessors';
+import { withSaveAndVerify } from '../helpers/contracts-helpers';
 
 const {
   RESERVES = 'DAI,GUSD,USDC,USDT,WBTC,WETH',
@@ -43,7 +48,6 @@ const {
   AAVE_TOKEN = '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9',
   TREASURY = '0x464c71f6c2f760dda6093dcb91c24c39e5d6e18c',
   IPFS_HASH = 'QmT9qk3CRYbFDWpDFYeAv8T8H1gnongwKhh5J68NLkLir6',
-  INCENTIVES_PROXY = '0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5',
   AAVE_GOVERNANCE_V2 = '0xEC568fffba86c094cf06b22134B23074DFE2252c', // mainnet
   AAVE_SHORT_EXECUTOR = '0xee56e2b3d491590b5b31738cc34d5232f378a8d5', // mainnet
 } = process.env;
@@ -86,9 +90,24 @@ describe('Enable incentives in target assets', () => {
   let dai: IERC20;
   let aDAI: AToken;
   let variableDebtDAI: IERC20;
+  let snapshotId: string;
   let proposalId: BigNumber;
-  let aTokensImpl: tEthereumAddress[];
-  let variableDebtTokensImpl: tEthereumAddress[];
+  let aTokensImpl: [
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress
+  ];
+  let variableDebtTokensImpl: [
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress,
+    tEthereumAddress
+  ];
   let proposalExecutionPayload: tEthereumAddress;
   let symbols: {
     [key: string]: {
@@ -96,7 +115,12 @@ describe('Enable incentives in target assets', () => {
       variableDebtToken: { symbol: string; name: string };
     };
   } = {};
-
+  /*
+    afterEach(async () => {
+      evmRevert(snapshotId);
+      snapshotId = await evmSnapshot();
+    });
+  */
   before(async () => {
     await rawHRE.run('set-DRE');
     ethers = DRE.ethers;
@@ -107,8 +131,27 @@ describe('Enable incentives in target assets', () => {
       AAVE_STAKE,
       AAVE_SHORT_EXECUTOR,
     ]);
+    const incentivesInitParams = StakedTokenIncentivesControllerFactory.connect(
+      incentivesImplementation,
+      proposer
+    ).interface.encodeFunctionData('initialize');
 
-    incentivesProxy = INCENTIVES_PROXY;
+    // Deploy incentives proxy (Proxy Admin should be the provider, TBD)
+    const { address: incentivesProxyAddress } = await deployInitializableAdminUpgradeabilityProxy();
+    incentivesProxy = incentivesProxyAddress;
+
+    // Initialize proxy for incentives controller
+    const incentivesProxyInstance = InitializableAdminUpgradeabilityProxyFactory.connect(
+      incentivesProxy,
+      proposer
+    );
+    await waitForTx(
+      await incentivesProxyInstance['initialize(address,address,bytes)'](
+        incentivesImplementation,
+        incentivesProxyAdmin.address,
+        incentivesInitParams
+      )
+    );
 
     // Deploy aTokens and debt tokens
     const { aTokens, variableDebtTokens } = await rawHRE.run('deploy-reserve-implementations', {
@@ -118,13 +161,34 @@ describe('Enable incentives in target assets', () => {
       treasury: TREASURY,
     });
 
-    aTokensImpl = [...aTokens];
-    variableDebtTokensImpl = [...variableDebtTokens];
+    aTokensImpl = [
+      ...(aTokens as [
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress
+      ]),
+    ];
+    variableDebtTokensImpl = [
+      ...(variableDebtTokens as [
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress,
+        tEthereumAddress
+      ]),
+    ];
 
     // Deploy Proposal Executor Payload
-    const {
-      address: proposalExecutionPayloadAddress,
-    } = await new ProposalIncentivesExecutorFactory(proposer).deploy();
+    const { address: proposalExecutionPayloadAddress } = await withSaveAndVerify(
+      await new ProposalIncentivesExecutorFactory(proposer).deploy(),
+      'ProposalIncentivesExecutor',
+      [],
+      true
+    );
     proposalExecutionPayload = proposalExecutionPayloadAddress;
     // Send ether to the AAVE_WHALE, which is a non payable contract via selfdestruct
     const selfDestructContract = await new SelfdestructTransferFactory(proposer).deploy();
@@ -133,9 +197,25 @@ describe('Enable incentives in target assets', () => {
         value: ethers.utils.parseEther('1'),
       })
     ).wait();
+    // Send ether to the GOV, which is a non payable contract via selfdestruct
+    const selfDestructContractV2 = await new SelfdestructTransferFactory(proposer).deploy();
+    await (
+      await selfDestructContractV2.destroyAndTransfer(AAVE_GOVERNANCE_V2, {
+        value: ethers.utils.parseEther('1'),
+      })
+    ).wait();
+    // Send ether to the Short Executor, which is a non payable contract via selfdestruct
+    const selfDestructContractV3 = await new SelfdestructTransferFactory(proposer).deploy();
+    await (
+      await selfDestructContractV3.destroyAndTransfer(AAVE_SHORT_EXECUTOR, {
+        value: ethers.utils.parseEther('1'),
+      })
+    ).wait();
     await impersonateAccountsHardhat([
       AAVE_WHALE,
       ...Object.keys(spendList).map((k) => spendList[k].holder),
+      AAVE_GOVERNANCE_V2,
+      AAVE_SHORT_EXECUTOR,
     ]);
 
     // Impersonating holders
@@ -170,7 +250,7 @@ describe('Enable incentives in target assets', () => {
     await (await aave.transfer(proposer.address, parseEther('2000000'))).wait();
 
     // Transfer DAI to repay future DAI loan
-    await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
+    const lastTx = await (await dai.transfer(proposer.address, parseEther('100000'))).wait();
 
     // Save aToken and debt token names
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
@@ -196,69 +276,94 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  it('Proposal should be created', async () => {
-    await advanceBlockTo((await latestBlock()) + 10);
-
-    try {
-      const balance = await aave.balanceOf(proposer.address);
-      console.log('AAVE Balance proposer', formatEther(balance));
-      const aaveGovToken = IGovernancePowerDelegationTokenFactory.connect(AAVE_TOKEN, proposer);
-      const propositionPower = await aaveGovToken.getPowerAtBlock(
-        proposer.address,
-        ((await latestBlock()) - 1).toString(),
-        '1'
-      );
-
-      console.log(
-        `Proposition power of ${proposer.address} at block - 1`,
-        formatEther(propositionPower)
-      );
-    } catch (error) {
-      console.log(error);
-    }
-    // Submit proposal
-    proposalId = await gov.getProposalsCount();
-
-    await DRE.run('propose-incentives', {
-      proposalExecutionPayload,
-      aTokens: aTokensImpl.join(','),
-      variableDebtTokens: variableDebtTokensImpl.join(','),
-      aaveGovernance: AAVE_GOVERNANCE_V2,
-      shortExecutor: AAVE_SHORT_EXECUTOR,
-      ipfsHash: IPFS_HASH,
-    });
-    console.log('submited');
-
-    // Mine block due flash loan voting protection
-    await advanceBlockTo((await latestBlock()) + 1);
-
-    // Submit vote and advance block to Queue phase
-    await (await gov.submitVote(proposalId, true)).wait();
-    await advanceBlockTo((await latestBlock()) + VOTING_DURATION + 1);
-  });
-
-  it('Proposal should be queued', async () => {
-    // Queue and advance block to Execution phase
-    await (await gov.queue(proposalId)).wait();
-    let proposalState = await gov.getProposalState(proposalId);
-    expect(proposalState).to.be.equal(5);
-
-    await increaseTime(86400 + 10);
-  });
-
   it('Proposal should be executed', async () => {
-    // Execute payload
+    const impersonatedGovernance = await ethers.provider.getSigner(AAVE_GOVERNANCE_V2);
+    const impersonateExecutor = await ethers.provider.getSigner(AAVE_SHORT_EXECUTOR);
+
+    const executionPayload = ProposalIncentivesExecutorFactory.connect(
+      proposalExecutionPayload,
+      impersonateExecutor
+    );
     try {
-      await (await gov.execute(proposalId, { gasLimit: 3000000 })).wait();
+      await (
+        await executionPayload.execute(aTokensImpl, variableDebtTokensImpl, {
+          gasLimit: 6000000,
+        })
+      ).wait();
     } catch (error) {
-      logError();
+      if (DRE.network.name.includes('tenderly')) {
+        const transactionLink = `https://dashboard.tenderly.co/${DRE.config.tenderly.username}/${
+          DRE.config.tenderly.project
+        }/fork/${DRE.tenderly.network().getFork()}/simulation/${DRE.tenderly.network().getHead()}`;
+        console.error(
+          '[TENDERLY] Transaction Reverted. Check TX simulation error at:',
+          transactionLink
+        );
+      }
       throw error;
     }
+    /* Other way via impersonating gov
 
-    console.log('Proposal executed');
+    const executor = IExecutorWithTimelockFactory.connect(
+      AAVE_SHORT_EXECUTOR,
+      impersonatedGovernance
+    );
 
-    const proposalState = await gov.getProposalState(proposalId);
-    expect(proposalState).to.be.equal(7);
+    // Calldata
+    const callData = ethers.utils.defaultAbiCoder.encode(
+      ['address', 'address[6]', 'address[6]'],
+      [incentivesProxy, aTokensImpl, variableDebtTokensImpl]
+    );
+    const test = await DRE.ethers.provider._getBlock(await latestBlock());
+
+    const { timestamp } = await DRE.ethers.provider.getBlock(await latestBlock());
+    const executionTime = BigNumber.from(timestamp.toString()).add('86415');
+    try {
+      // Queue payload
+      await (
+        await executor.queueTransaction(
+          proposalExecutionPayload,
+          '0',
+          'execute(address,address[6],address[6])',
+          callData,
+          executionTime,
+          true
+        )
+      ).wait();
+
+      const { timestamp: time2 } = await DRE.ethers.provider.getBlock(await latestBlock());
+      console.log('time2', time2, executionTime.toString());
+      const neededTime = executionTime.sub(time2.toString());
+      // Pass time
+      await increaseTime(Number(neededTime.add('1000').toString()));
+      const { timestamp: tim32 } = await DRE.ethers.provider.getBlock(await latestBlock());
+      console.log('current', tim32, executionTime.toString());
+      expect(tim32).to.be.gte(Number(executionTime.toString()), 'chain.timestamp below execution');
+      // Execute payload
+      await (
+        await executor.executeTransaction(
+          proposalExecutionPayload,
+          '0',
+          'execute(address,address[6],address[6])',
+          callData,
+          executionTime,
+          true,
+          { gasLimit: 3000000 }
+        )
+      ).wait();
+    } catch (error) {
+      if (DRE.network.name.includes('tenderly')) {
+        const transactionLink = `https://dashboard.tenderly.co/${DRE.config.tenderly.username}/${
+          DRE.config.tenderly.project
+        }/fork/${DRE.tenderly.network().getFork()}/simulation/${DRE.tenderly.network().getHead()}`;
+        console.error(
+          '[TENDERLY] Transaction Reverted. Check TX simulation error at:',
+          transactionLink
+        );
+      }
+      throw error;
+    }
+    */
   });
 
   it('Check emission rate', async () => {
@@ -318,7 +423,7 @@ describe('Enable incentives in target assets', () => {
     expect(claimed).to.be.eq(expectedClaimedRewards);
   });
 
-  it('Users should be able to deposit DAI at Lending Pool', async () => {
+  xit('Users should be able to deposit DAI at Lending Pool', async () => {
     // Deposit DAI to LendingPool
     await (await dai.connect(proposer).approve(pool.address, parseEther('2000'))).wait();
 
@@ -327,14 +432,14 @@ describe('Enable incentives in target assets', () => {
     expect(await aDAI.balanceOf(proposer.address)).to.be.gte(parseEther('100'));
   });
 
-  it('Users should be able to request DAI loan from Lending Pool', async () => {
+  xit('Users should be able to request DAI loan from Lending Pool', async () => {
     // Request DAI loan to LendingPool
     const tx = await pool.borrow(dai.address, parseEther('1'), '2', '0', proposer.address);
     expect(tx).to.emit(pool, 'Borrow');
     expect(await variableDebtDAI.balanceOf(proposer.address)).to.be.eq(parseEther('1'));
   });
 
-  it('Users should be able to repay DAI loan from Lending Pool', async () => {
+  xit('Users should be able to repay DAI loan from Lending Pool', async () => {
     const {
       configuration: { data },
       variableDebtTokenAddress,
@@ -346,7 +451,7 @@ describe('Enable incentives in target assets', () => {
     expect(tx).to.emit(pool, 'Repay');
   });
 
-  it('Users should be able to withdraw DAI from Lending Pool', async () => {
+  xit('Users should be able to withdraw DAI from Lending Pool', async () => {
     const {
       configuration: { data },
       aTokenAddress,
@@ -362,7 +467,7 @@ describe('Enable incentives in target assets', () => {
     expect(afterDAIBalance).to.be.gt(priorDAIBalance);
   });
 
-  it('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
+  xit('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
 
     // Deposit AAVE to LendingPool to have enought collateral for future borrows
@@ -377,7 +482,7 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  it('Check all aToken symbols and debt token matches', async () => {
+  xit('Check all aToken symbols and debt token matches', async () => {
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
 
     for (let x = 0; x < reserveConfigs.length; x++) {
@@ -400,7 +505,7 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  it('Users should be able to claim incentives', async () => {
+  xit('Users should be able to claim incentives', async () => {
     // Initialize proxy for incentives controller
     const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
@@ -436,7 +541,7 @@ describe('Enable incentives in target assets', () => {
     }
   });
 
-  it('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
+  xit('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
     const incentives = StakedTokenIncentivesControllerFactory.connect(incentivesProxy, proposer);
     const distributionEnd = await incentives.getDistributionEnd();
 

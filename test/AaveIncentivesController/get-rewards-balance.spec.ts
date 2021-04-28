@@ -44,11 +44,10 @@ makeSuite('AaveIncentivesController getRewardsBalance tests', (testEnv) => {
       // update emissionPerSecond in advance to not affect user calculations
       await advanceBlock((await timeLatest()).plus(100).toNumber());
       if (emissionPerSecond) {
-        await aaveIncentivesController.configureAssets([
-          { emissionPerSecond, underlyingAsset, totalStaked },
-        ]);
+        await aDaiMock.setUserBalanceAndSupply('0', totalStaked);
+        await aaveIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
       }
-      await aDaiMock.handleActionOnAic(userAddress, stakedByUser, totalStaked);
+      await aDaiMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
       await advanceBlock((await timeLatest()).plus(100).toNumber());
 
       const lastTxReceipt = await waitForTx(
@@ -66,7 +65,7 @@ makeSuite('AaveIncentivesController getRewardsBalance tests', (testEnv) => {
       );
 
       const userIndex = await getUserIndex(aaveIncentivesController, userAddress, underlyingAsset);
-      const assetData = (await getAssetsData(aaveIncentivesController, [{ underlyingAsset }]))[0];
+      const assetData = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
 
       await aDaiMock.cleanUserState();
 

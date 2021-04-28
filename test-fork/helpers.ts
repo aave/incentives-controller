@@ -1,15 +1,17 @@
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { tEthereumAddress } from '../helpers/types';
-import { AaveProtocolDataProviderFactory, ATokenFactory } from '../types';
-import { ILendingPoolAddressesProviderFactory } from '../types/ILendingPoolAddressesProviderFactory';
+import {
+  AaveProtocolDataProvider__factory,
+  AToken__factory,
+  IERC20__factory,
+  ILendingPoolAddressesProvider__factory,
+} from '../types';
 import { expect } from 'chai';
-import { ethers } from 'ethers';
 import { parseUnits } from 'ethers/lib/utils';
 import { MAX_UINT_AMOUNT } from '../helpers/constants';
-import { IERC20Factory } from '../types/IERC20Factory';
-import { Signer } from 'crypto';
 import { DRE } from '../helpers/misc-utils';
 import { ILendingPool } from '../types/ILendingPool';
+import { Signer } from 'ethers/lib/ethers';
 
 export const spendList = {
   DAI: {
@@ -53,13 +55,13 @@ export const spendList = {
 export const getReserveConfigs = async (
   poolProviderAddress: tEthereumAddress,
   reserves: string,
-  proposer: SignerWithAddress
+  proposer: Signer
 ) => {
-  const poolProvider = await ILendingPoolAddressesProviderFactory.connect(
+  const poolProvider = await ILendingPoolAddressesProvider__factory.connect(
     poolProviderAddress,
     proposer
   );
-  const protocolDataProvider = await AaveProtocolDataProviderFactory.connect(
+  const protocolDataProvider = await AaveProtocolDataProvider__factory.connect(
     await poolProvider.getAddress(
       '0x0100000000000000000000000000000000000000000000000000000000000000'
     ),
@@ -81,8 +83,8 @@ export const fullCycleLendingPool = async (
   pool: ILendingPool
 ) => {
   const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
-  const reserve = IERC20Factory.connect(tokenAddress, proposer);
-  const aToken = ATokenFactory.connect(aTokenAddress, proposer);
+  const reserve = IERC20__factory.connect(tokenAddress, proposer);
+  const aToken = AToken__factory.connect(aTokenAddress, proposer);
   const holderSigner = DRE.ethers.provider.getSigner(spendList[symbol].holder);
 
   // Transfer assets to proposer from reserve holder

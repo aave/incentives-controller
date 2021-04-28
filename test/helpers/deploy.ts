@@ -8,7 +8,7 @@ import {
 import { getFirstSigner, insertContractAddressInDb } from '../../helpers/contracts-helpers';
 import { verifyContract } from '../../helpers/etherscan-verification';
 import { eContractid, tEthereumAddress } from '../../helpers/types';
-import { MintableErc20, StakedAaveV3Factory } from '../../types';
+import { MintableErc20, StakedAaveV3__factory } from '../../types';
 
 export const COOLDOWN_SECONDS = '3600'; // 1 hour in seconds
 export const UNSTAKE_WINDOW = '1800'; // 30 min in second
@@ -41,10 +41,13 @@ export const testDeployIncentivesController = async (
 
   // Initialize proxies
   const aaveStakeInit = aaveStakeV3.interface.encodeFunctionData(
+    // @ts-ignore
     'initialize(address,address,address,uint256,string,string,uint8)',
     [emissionManager, emissionManager, emissionManager, '2000', 'Staked AAVE', 'stkAAVE', '18']
   );
-  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize');
+  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize', [
+    ZERO_ADDRESS,
+  ]);
 
   await (
     await stakeProxy['initialize(address,address,bytes)'](
@@ -97,7 +100,7 @@ export const deployStakedAaveV3 = async (
     distributionDuration,
     ZERO_ADDRESS, // gov address
   ];
-  const instance = await new StakedAaveV3Factory(await getFirstSigner()).deploy(
+  const instance = await new StakedAaveV3__factory(await getFirstSigner()).deploy(
     stakedToken,
     rewardsToken,
     cooldownSeconds,
