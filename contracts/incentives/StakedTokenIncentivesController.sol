@@ -134,6 +134,15 @@ contract StakedTokenIncentivesController is
     return _claimRewards(assets, amount, msg.sender, user, to);
   }
 
+  /// @inheritdoc IAaveIncentivesController
+  function claimRewardsToSelf(address[] calldata assets, uint256 amount)
+    external
+    override
+    returns (uint256)
+  {
+    return _claimRewards(assets, amount, msg.sender, msg.sender, msg.sender);
+  }
+
   /**
    * @dev Claims reward for an user on behalf, on all the assets of the lending pool, accumulating the pending rewards.
    * @param amount Amount of rewards to claim

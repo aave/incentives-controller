@@ -91,6 +91,14 @@ interface IAaveIncentivesController is IAaveDistributionManager {
   ) external returns (uint256);
 
   /**
+   * @dev Claims rewards for a user, on the specified assets of the lending pool, distributing the pending rewards to self
+   * @param assets Incentivized assets on which to claim rewards
+   * @param amount Amount of rewards to claim
+   * @return Rewards claimed
+   **/
+  function claimRewardsToSelf(address[] calldata assets, uint256 amount) external returns (uint256);
+
+  /**
    * @dev returns the unclaimed rewards of the user
    * @param user the address of the user
    * @return the unclaimed user rewards
