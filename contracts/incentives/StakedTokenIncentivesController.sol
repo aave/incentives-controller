@@ -27,7 +27,7 @@ contract StakedTokenIncentivesController is
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  uint256 public constant REVISION = 1;
+  uint256 public constant REVISION = 2;
 
   IStakedTokenWithConfig public immutable STAKE_TOKEN;
 
