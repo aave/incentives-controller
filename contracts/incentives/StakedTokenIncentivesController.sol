@@ -49,13 +49,9 @@ contract StakedTokenIncentivesController is
   }
 
   /**
-   * @dev Initialize IStakedTokenIncentivesController
-   * @param addressesProvider the address of the corresponding addresses provider
+   * @dev Initialize IStakedTokenIncentivesController. Empty after REVISION 1, but maintains the expected interface.
    **/
-  function initialize(address addressesProvider) external initializer {
-    //approves the safety module to allow staking
-    IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
-  }
+  function initialize(address) external {}
 
   /// @inheritdoc IAaveIncentivesController
   function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
