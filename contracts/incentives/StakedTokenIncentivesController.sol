@@ -51,7 +51,7 @@ contract StakedTokenIncentivesController is
   /**
    * @dev Initialize IStakedTokenIncentivesController. Empty after REVISION 1, but maintains the expected interface.
    **/
-  function initialize(address) external {}
+  function initialize(address) external initializer {}
 
   /// @inheritdoc IAaveIncentivesController
   function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
