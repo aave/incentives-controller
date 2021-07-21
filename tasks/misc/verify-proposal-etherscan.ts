@@ -21,9 +21,6 @@ const AAVE_LENDING_POOL = '0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9';
 const INCENTIVES_PROXY = '0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5';
 
 task('verify-proposal-etherscan', 'Verify proposals')
-  .addParam('assets')
-  .addParam('aTokens')
-  .addParam('variableDebtTokens')
   .addParam('proposalPayloadAddress')
   .setAction(async ({ assets, aTokens, variableDebtTokens, proposalPayloadAddress }, localBRE) => {
     await localBRE.run('set-DRE');
