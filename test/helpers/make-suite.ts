@@ -9,7 +9,7 @@ import bignumberChai from 'chai-bignumber';
 import { getATokenMock } from '../../helpers/contracts-accessors';
 import { MintableErc20 } from '../../types/MintableErc20';
 import { ATokenMock } from '../../types/ATokenMock';
-import { StakedAaveV3, StakedTokenIncentivesController } from '../../types';
+import { StakedAaveV3, IAaveIncentivesController } from '../../types';
 
 chai.use(bignumberChai());
 
@@ -27,7 +27,7 @@ export interface TestEnv {
   deployer: SignerWithAddress;
   users: SignerWithAddress[];
   aaveToken: MintableErc20;
-  aaveIncentivesController: StakedTokenIncentivesController;
+  aaveIncentivesController: IAaveIncentivesController;
   stakedAave: StakedAaveV3;
   aDaiMock: ATokenMock;
   aWethMock: ATokenMock;
@@ -45,7 +45,7 @@ const testEnv: TestEnv = {
   users: [] as SignerWithAddress[],
   aaveToken: {} as MintableErc20,
   stakedAave: {} as StakedAaveV3,
-  aaveIncentivesController: {} as StakedTokenIncentivesController,
+  aaveIncentivesController: {} as IAaveIncentivesController,
   aDaiMock: {} as ATokenMock,
   aWethMock: {} as ATokenMock,
 } as TestEnv;
@@ -53,7 +53,7 @@ const testEnv: TestEnv = {
 export async function initializeMakeSuite(
   aaveToken: MintableErc20,
   stakedAave: StakedAaveV3,
-  aaveIncentivesController: StakedTokenIncentivesController
+  aaveIncentivesController: IAaveIncentivesController
 ) {
   const [_deployer, _proxyAdmin, ...restSigners] = await getEthersSigners();
   const deployer: SignerWithAddress = {

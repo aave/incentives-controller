@@ -6,7 +6,7 @@ import { deployMintableErc20, deployATokenMock } from '../helpers/contracts-acce
 import { waitForTx } from '../helpers/misc-utils';
 import { MintableErc20 } from '../types/MintableErc20';
 import { testDeployIncentivesController } from './helpers/deploy';
-import { StakedAaveV3__factory, StakedTokenIncentivesController__factory } from '../types';
+import { StakedAaveV3__factory, StakedTokenIncentivesController__factory, ERC20TokenIncentivesController__factory } from '../types';
 import { parseEther } from '@ethersproject/units';
 
 const topUpWalletsWithAave = async (
@@ -45,7 +45,8 @@ const buildTestEnv = async (
   await deployATokenMock(incentivesProxy.address, 'aDai');
   await deployATokenMock(incentivesProxy.address, 'aWeth');
 
-  const incentivesController = StakedTokenIncentivesController__factory.connect(
+  const factory = process.env.ERC20_INCENTIVES ? ERC20TokenIncentivesController__factory : StakedTokenIncentivesController__factory;
+  const incentivesController = factory.connect(
     incentivesProxy.address,
     deployer
   );
