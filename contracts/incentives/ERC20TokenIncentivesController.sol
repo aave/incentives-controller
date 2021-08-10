@@ -26,8 +26,7 @@ contract ERC20TokenIncentivesController is
 
   uint256 public constant REVISION = 1;
 
-  /// @inheritdoc IAaveIncentivesController
-  address public immutable override REWARD_TOKEN;
+  address public immutable TOKEN;
 
   mapping(address => uint256) internal _usersUnclaimedRewards;
 
@@ -43,7 +42,7 @@ contract ERC20TokenIncentivesController is
   constructor(address rewardToken, address emissionManager)
     DistributionManager(emissionManager)
   {
-    REWARD_TOKEN = rewardToken;
+    TOKEN = rewardToken;
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -147,6 +146,11 @@ contract ERC20TokenIncentivesController is
     return _usersUnclaimedRewards[_user];
   }
 
+  /// @inheritdoc IAaveIncentivesController
+  function REWARD_TOKEN() external view override returns (address) {
+    return address(TOKEN);
+  }
+
   /**
    * @dev returns the revision of the implementation contract
    */
@@ -194,7 +198,7 @@ contract ERC20TokenIncentivesController is
     uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
     _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
 
-    IERC20(REWARD_TOKEN).transfer(to, amountToClaim);
+    IERC20(TOKEN).transfer(to, amountToClaim);
     emit RewardsClaimed(user, to, claimer, amountToClaim);
 
     return amountToClaim;
