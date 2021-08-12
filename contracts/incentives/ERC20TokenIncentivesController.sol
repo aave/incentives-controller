@@ -45,6 +45,14 @@ contract ERC20TokenIncentivesController is
     TOKEN = rewardToken;
   }
 
+  /**
+   * @dev Initialize IERC20TokenIncentivesController
+   * @param addressesProvider the address of the corresponding addresses provider
+   **/
+  function initialize(address addressesProvider) external initializer {
+    // no-op
+  }
+
   /// @inheritdoc IAaveIncentivesController
   function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
     external
@@ -148,7 +156,7 @@ contract ERC20TokenIncentivesController is
 
   /// @inheritdoc IAaveIncentivesController
   function REWARD_TOKEN() external view override returns (address) {
-    return address(TOKEN);
+    return TOKEN;
   }
 
   /**
