@@ -12,6 +12,7 @@ import { IERC20Detailed } from '../types/IERC20Detailed';
 import { verifyContract } from './etherscan-verification';
 import { ATokenMock } from '../types/ATokenMock';
 import {
+  BaseIncentivesController__factory,
   InitializableAdminUpgradeabilityProxy__factory,
   StakedTokenIncentivesController,
   StakedTokenIncentivesController__factory,
@@ -24,9 +25,24 @@ export const deployAaveIncentivesController = async (
   verify?: boolean,
   signer?: Signer | DefenderRelaySigner
 ) => {
-  const id = eContractid.StakedTokenIncentivesController;
   const args: [string, string] = [aavePsm, emissionManager];
   const instance = await new StakedTokenIncentivesController__factory(
+    signer || (await getFirstSigner())
+  ).deploy(...args);
+  await instance.deployTransaction.wait();
+  if (verify) {
+    await verifyContract(instance.address, args);
+  }
+  return instance;
+};
+
+export const deployBaseIncentivesController = async (
+  [rewardToken, emissionManager]: [tEthereumAddress, tEthereumAddress],
+  verify?: boolean,
+  signer?: Signer | DefenderRelaySigner
+) => {
+  const args: [string, string] = [rewardToken, emissionManager];
+  const instance = await new BaseIncentivesController__factory(
     signer || (await getFirstSigner())
   ).deploy(...args);
   await instance.deployTransaction.wait();
@@ -64,6 +80,9 @@ export const getAaveIncentivesController = getContractFactory<StakedTokenIncenti
 
 export const getIncentivesController = async (address: tEthereumAddress) =>
   StakedTokenIncentivesController__factory.connect(address, await getFirstSigner());
+
+export const getBaseIncentivesController = async (address: tEthereumAddress) =>
+  BaseIncentivesController__factory.connect(address, await getFirstSigner());
 
 export const getIErc20Detailed = getContractFactory<IERC20Detailed>(eContractid.IERC20Detailed);
 

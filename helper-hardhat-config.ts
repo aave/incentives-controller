@@ -1,5 +1,6 @@
 // @ts-ignore
 import {
+  eAvalancheNetwork,
   eEthereumNetwork,
   ePolygonNetwork,
   eXDaiNetwork,
@@ -31,6 +32,8 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [ePolygonNetwork.mumbai]: 'https://rpc-mumbai.maticvigil.com',
   [ePolygonNetwork.matic]: 'https://rpc-mainnet.matic.network',
   [eXDaiNetwork.xdai]: 'https://rpc.xdaichain.com/',
+  [eAvalancheNetwork.avalanche]: 'https://cchain.explorer.avax.network/',
+  [eAvalancheNetwork.fuji]: 'https://api.avax-test.network/ext/bc/C/rpc',
 };
 
 export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
@@ -44,4 +47,6 @@ export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
   [ePolygonNetwork.mumbai]: 1 * GWEI,
   [ePolygonNetwork.matic]: 2 * GWEI,
   [eXDaiNetwork.xdai]: 1 * GWEI,
+  [eAvalancheNetwork.fuji]: 225 * GWEI,
+  [eAvalancheNetwork.avalanche]: 225 * GWEI,
 };
