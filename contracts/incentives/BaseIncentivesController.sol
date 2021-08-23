@@ -22,6 +22,8 @@ contract BaseIncentivesController is
   DistributionManager
 {
   using SafeMath for uint256;
+  using SafeERC20 for IERC20;
+
   uint256 public constant REVISION = 1;
 
   address public immutable override REWARD_TOKEN;
@@ -211,9 +213,8 @@ contract BaseIncentivesController is
     uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
     _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
 
-    IERC20(REWARD_TOKEN).transferFrom(_rewardsVault, to, amountToClaim);
-
-    emit RewardsClaimed(claimer, user, to, amountToClaim);
+    IERC20(REWARD_TOKEN).safeTransferFrom(_rewardsVault, to, amountToClaim);
+    emit RewardsClaimed(user, to, claimer, amountToClaim);
 
     return amountToClaim;
   }

@@ -29,23 +29,22 @@ task(`deploy-base-incentives`, `Deploy and initializes the BaseIncentivesControl
 
       console.log(`[BaseIncentivesController] Starting deployment:`);
 
-      const aaveIncentivesControllerImpl = await deployBaseIncentivesController(
+      const incentivesControllerImpl = await deployBaseIncentivesController(
         [rewardToken, emissionManager],
         verify
       );
       console.log(`  - Deployed implementation of BaseIncentivesController`);
 
-      const aaveIncentivesProxy = await deployInitializableAdminUpgradeabilityProxy(verify);
+      const incentivesProxy = await deployInitializableAdminUpgradeabilityProxy(verify);
       console.log(`  - Deployed proxy of BaseIncentivesController`);
 
-      const encodedParams = aaveIncentivesControllerImpl.interface.encodeFunctionData(
-        'initialize',
-        [rewardsVault]
-      );
+      const encodedParams = incentivesControllerImpl.interface.encodeFunctionData('initialize', [
+        rewardsVault,
+      ]);
 
       await waitForTx(
-        await aaveIncentivesProxy.functions['initialize(address,address,bytes)'](
-          aaveIncentivesControllerImpl.address,
+        await incentivesProxy.functions['initialize(address,address,bytes)'](
+          incentivesControllerImpl.address,
           proxyAdmin,
           encodedParams
         )
@@ -53,7 +52,12 @@ task(`deploy-base-incentives`, `Deploy and initializes the BaseIncentivesControl
       console.log(`  - Initialized  BaseIncentivesController Proxy`);
 
       console.log(`  - Finished BaseIncentivesController deployment and initialization`);
-      console.log(`    - Proxy: ${aaveIncentivesProxy.address}`);
-      console.log(`    - Impl: ${aaveIncentivesControllerImpl.address}`);
+      console.log(`    - Proxy: ${incentivesProxy.address}`);
+      console.log(`    - Impl: ${incentivesControllerImpl.address}`);
+
+      return {
+        proxy: incentivesProxy.address,
+        implementation: incentivesControllerImpl.address,
+      };
     }
   );
