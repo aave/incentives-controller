@@ -65,7 +65,7 @@
     "ethereumjs-util": "7.0.2",
     "ethers": "^5.0.19",
     "globby": "^11.0.1",
-    "hardhat": "^2.1.2",
+    "hardhat": "^2.6.5",
     "hardhat-gas-reporter": "^1.0.0",
     "husky": "^4.2.5",
     "is-ipfs": "^5.0.0",
