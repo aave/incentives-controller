@@ -21,7 +21,7 @@ import 'solidity-coverage';
 const SKIP_LOAD = process.env.SKIP_LOAD === 'true';
 const DEFAULT_BLOCK_GAS_LIMIT = 12450000;
 const DEFAULT_GAS_MUL = 5;
-const HARDFORK = 'istanbul';
+const HARDFORK = 'london';
 const ETHERSCAN_KEY = process.env.ETHERSCAN_KEY || '';
 const MNEMONIC_PATH = "m/44'/60'/0'/0";
 const MNEMONIC = process.env.MNEMONIC || '';
@@ -58,7 +58,7 @@ const getCommonNetworkConfig = (networkName: eNetwork, networkId: number) => ({
 
 const mainnetFork = MAINNET_FORK
   ? {
-      blockNumber: 12640000, // Jun 15, 2021
+      blockNumber: 13410750, // Oct 13, 2021
       url: NETWORKS_RPC_URL['main'],
     }
   : undefined;
