@@ -5,12 +5,15 @@ import { constants } from 'ethers';
 import rawHRE from 'hardhat';
 import { deployAaveIncentivesController, deploySelfDestruct } from '../helpers/contracts-accessors';
 import { DRE, impersonateAccountsHardhat, increaseTime } from '../helpers/misc-utils';
+import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
+import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
 import {
   IAaveIncentivesController,
   IERC20,
   ILendingPool,
   ILendingPoolAddressesProvider,
   InitializableAdminUpgradeabilityProxy,
+  StakedTokenIncentivesController,
 } from '../types';
 
 const AAVE_LENDING_POOL_ADDRESSES_PROVIDER = '0xb53c1a33016b2dc2ff3653530bff1848a515c8c5';
@@ -20,7 +23,7 @@ const INCENTIVES_PROXY_ADMIN = AAVE_LENDING_POOL_ADDRESSES_PROVIDER;
 
 const AAVE_DAI_TOKEN = '0x028171bCA77440897B824Ca71D1c56caC55b68A3';
 const DAI_TOKEN = '0x6b175474e89094c44da98b954eedeac495271d0f';
-const DAI_WHALE = '0x16463c0fdB6BA9618909F5b120ea1581618C1b9E';
+const DAI_WHALE = '0x1e3d6eab4bcf24bcd04721caa11c478a2e59852d';
 const STAKED_AAVE = '0x4da27a545c0c5B758a6BA100e3a049001de870f5';
 
 describe('Upgrade to and test Revision #2 of the implementation', () => {
@@ -37,7 +40,7 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
 
     // Define ERC20 tokens
     aDai = (await ethers.getContractAt(
-      '@aave/protocol-v2/contracts/dependencies/openzeppelin/contracts/IERC20.sol:IERC20',
+      '@aave/protocol-v2/contracts/protocol/tokenization/AToken.sol:AToken',
       AAVE_DAI_TOKEN
     )) as IERC20;
     dai = (await ethers.getContractAt(
@@ -72,11 +75,13 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
     const incentivesProxyAdmin = ethers.provider.getSigner(INCENTIVES_PROXY_ADMIN);
     daiWhale = ethers.provider.getSigner(DAI_WHALE);
 
-    // Seed the incentives proxy admin account with some ETH for gas
-    const selfDestructContract = await deploySelfDestruct();
-    await selfDestructContract.destroyAndTransfer(INCENTIVES_PROXY_ADMIN, {
-      value: ethers.utils.parseEther('10'),
-    });
+    // Seed the impersonated accounts with some ETH for gas
+    for (const ethBeneficiary of [INCENTIVES_PROXY_ADMIN, DAI_WHALE]) {
+      const selfDestructContract = await deploySelfDestruct();
+      await selfDestructContract.destroyAndTransfer(ethBeneficiary, {
+        value: ethers.utils.parseEther('10'),
+      });
+    }
 
     // Deploy next incentives implementation
     const { address: nextIncentivesImplementation } = await deployAaveIncentivesController([
@@ -88,9 +93,14 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
     await incentivesProxy.connect(incentivesProxyAdmin).upgradeTo(nextIncentivesImplementation);
   });
 
-  it('allows aToken holder to claim incentives using claimRewardsToSelf()', async () => {
+  it('continues to accrue rewards correctly, and allows aToken holder to claim incentives using claimRewardsToSelf()', async () => {
+    const rewardsAssets = [aDai.address];
+
     // Rewards should be accruing for aDai
     expect((await incentives.getAssetData(aDai.address))[1]).to.be.gt(0);
+
+    // Claim all rewards to zero out previously-accrued rewards
+    await incentives.connect(claimer).claimRewardsToSelf(rewardsAssets, constants.MaxUint256);
 
     // Seed claimer with DAI
     const daiDepositAmount = ethers.utils.parseEther('10000');
@@ -101,24 +111,42 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
     await pool.connect(claimer).deposit(dai.address, daiDepositAmount, claimer.address, 0);
     expect(await aDai.balanceOf(claimer.address)).to.be.gt(0);
 
-    const rewardsAssets = [aDai.address];
-
     // Wait for some time to accrue rewards
     await increaseTime(86400);
     expect(await incentives.getRewardsBalance(rewardsAssets, claimer.address)).to.be.gt(0);
 
-    // Checkpoint stkAave balance prior to claim
-    const priorBalance = await stkAave.balanceOf(claimer.address);
+    // Checkpoint claimer data prior to claim
+    const aTokenBalance = await aDai.connect(claimer).scaledBalanceOf(claimer.address);
+    const stkAaveBalanceBefore = await stkAave.balanceOf(claimer.address);
+    const userIndexBefore = await getUserIndex(
+      incentives as StakedTokenIncentivesController,
+      claimer.address,
+      aDai.address
+    );
 
     // Claim rewards to self
     const tx = await incentives
       .connect(claimer)
       .claimRewardsToSelf(rewardsAssets, constants.MaxUint256);
 
+    // Checkpoint claimer data post-claim
+    const stkAaveBalanceAfter = await stkAave.balanceOf(claimer.address);
+    const userIndexAfter = await getUserIndex(
+      incentives as StakedTokenIncentivesController,
+      claimer.address,
+      aDai.address
+    );
+
     // Assert the correct event emission
     expect(tx).to.emit(incentives, 'RewardsClaimed');
 
-    // Assert final stkAave balance has increased
-    expect(await stkAave.balanceOf(claimer.address)).to.be.gt(priorBalance);
+    // Assert the rewards accrued as expected
+    expect(stkAaveBalanceAfter).to.be.gt(stkAaveBalanceBefore);
+    const expectedAccruedRewards = getRewards(
+      aTokenBalance,
+      userIndexAfter,
+      userIndexBefore
+    ).toString();
+    expect(stkAaveBalanceAfter.sub(stkAaveBalanceBefore)).to.be.eq(expectedAccruedRewards);
   });
 });
