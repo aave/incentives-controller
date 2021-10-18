@@ -2,32 +2,29 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import {SafeERC20} from '@aave/aave-stake/contracts/lib/SafeERC20.sol';
-import {SafeMath} from '../lib/SafeMath.sol';
-import {DistributionTypes} from '../lib/DistributionTypes.sol';
+import {SafeMath} from '../../lib/SafeMath.sol';
+import {DistributionTypes} from '../../lib/DistributionTypes.sol';
 import {VersionedInitializable} from '@aave/aave-stake/contracts/utils/VersionedInitializable.sol';
 import {DistributionManager} from './DistributionManager.sol';
 import {IERC20} from '@aave/aave-stake/contracts/interfaces/IERC20.sol';
-import {IScaledBalanceToken} from '../interfaces/IScaledBalanceToken.sol';
-import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
+import {IScaledBalanceToken} from '../../interfaces/IScaledBalanceToken.sol';
+import {IAaveIncentivesController} from '../../interfaces/IAaveIncentivesController.sol';
 
 /**
  * @title BaseIncentivesController
- * @notice Distributor contract for ERC20 rewards to the Aave protocol participants
+ * @notice Abstract contract template to build Distributors contracts for ERC20 rewards to protocol participants
  * @author Aave
  **/
-contract BaseIncentivesController is
+abstract contract BaseIncentivesController is
   IAaveIncentivesController,
   VersionedInitializable,
   DistributionManager
 {
   using SafeMath for uint256;
-  using SafeERC20 for IERC20;
 
   uint256 public constant REVISION = 1;
 
   address public immutable override REWARD_TOKEN;
-  address internal _rewardsVault;
 
   mapping(address => uint256) internal _usersUnclaimedRewards;
 
@@ -35,8 +32,6 @@ contract BaseIncentivesController is
   // useful for contracts that hold tokens to be rewarded but don't have any native logic to claim Liquidity Mining rewards
   mapping(address => address) internal _authorizedClaimers;
 
-  event RewardsVaultUpdated(address indexed vault);
-  
   modifier onlyAuthorizedClaimers(address claimer, address user) {
     require(_authorizedClaimers[user] == claimer, 'CLAIMER_UNAUTHORIZED');
     _;
@@ -46,14 +41,6 @@ contract BaseIncentivesController is
     DistributionManager(emissionManager)
   {
     REWARD_TOKEN = address(rewardToken);
-  }
-
-  /**
-   * @dev Initialize AaveIncentivesController
-   * @param rewardsVault rewards vault to pull funds
-   **/
-  function initialize(address rewardsVault) external initializer {
-    _rewardsVault = rewardsVault;
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -157,23 +144,6 @@ contract BaseIncentivesController is
   }
 
   /**
-   * @dev returns the current rewards vault contract
-   * @return address
-   */
-  function getRewardsVault() external view returns (address) {
-    return _rewardsVault;
-  }
-
-  /**
-   * @dev update the rewards vault address, only allowed by the Rewards admin
-   * @param rewardsVault The address of the rewards vault
-   **/
-  function setRewardsVault(address rewardsVault) external onlyEmissionManager {
-    _rewardsVault = rewardsVault;
-    emit RewardsVaultUpdated(rewardsVault);
-  }
-
-  /**
    * @dev Claims reward for an user on behalf, on all the assets of the lending pool, accumulating the pending rewards.
    * @param amount Amount of rewards to claim
    * @param user Address to check and claim rewards
@@ -213,9 +183,16 @@ contract BaseIncentivesController is
     uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
     _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
 
-    IERC20(REWARD_TOKEN).safeTransferFrom(_rewardsVault, to, amountToClaim);
+    _transferRewards(to, amountToClaim);
     emit RewardsClaimed(user, to, claimer, amountToClaim);
 
     return amountToClaim;
   }
+
+  /**
+   * @dev Abstract function to transfer rewards to the desired account
+   * @param to Account address to send the rewards
+   * @param amount Amount of rewards to transfer
+   */
+  function _transferRewards(address to, uint256 amount) internal virtual;
 }

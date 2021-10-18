@@ -118,7 +118,7 @@ const configureAssetScenarios: ScenarioAction[] = [
   },
 ];
 
-makeSuite('baseIncentivesController configureAssets', (testEnv: TestEnv) => {
+makeSuite('pullRewardsIncentivesController configureAssets', (testEnv: TestEnv) => {
   let deployedAssets;
 
   before(async () => {
@@ -127,9 +127,9 @@ makeSuite('baseIncentivesController configureAssets', (testEnv: TestEnv) => {
 
   // custom checks
   it('Tries to submit config updates not from emission manager', async () => {
-    const { baseIncentivesController, users } = testEnv;
+    const { pullRewardsIncentivesController, users } = testEnv;
     await expect(
-      baseIncentivesController.connect(users[2].signer).configureAssets([], [])
+      pullRewardsIncentivesController.connect(users[2].signer).configureAssets([], [])
     ).to.be.revertedWith('ONLY_EMISSION_MANAGER');
   });
 
@@ -140,8 +140,8 @@ makeSuite('baseIncentivesController configureAssets', (testEnv: TestEnv) => {
     customTimeMovement,
   } of configureAssetScenarios) {
     it(caseName, async () => {
-      const { baseIncentivesController } = testEnv;
-      const distributionEndTimestamp = await baseIncentivesController.DISTRIBUTION_END();
+      const { pullRewardsIncentivesController } = testEnv;
+      const distributionEndTimestamp = await pullRewardsIncentivesController.DISTRIBUTION_END();
 
       const assets: string[] = [];
       const assetsEmissions: BigNumberish[] = [];
@@ -166,17 +166,17 @@ makeSuite('baseIncentivesController configureAssets', (testEnv: TestEnv) => {
         });
       }
 
-      const assetsConfigBefore = await getAssetsData(baseIncentivesController, assets);
+      const assetsConfigBefore = await getAssetsData(pullRewardsIncentivesController, assets);
 
       if (customTimeMovement) {
         await increaseTime(customTimeMovement);
       }
 
       const txReceipt = await waitForTx(
-        await baseIncentivesController.configureAssets(assets, assetsEmissions)
+        await pullRewardsIncentivesController.configureAssets(assets, assetsEmissions)
       );
       const configsUpdateBlockTimestamp = await getBlockTimestamp(txReceipt.blockNumber);
-      const assetsConfigAfter = await getAssetsData(baseIncentivesController, assets);
+      const assetsConfigAfter = await getAssetsData(pullRewardsIncentivesController, assets);
 
       const eventsEmitted = txReceipt.events || [];
 

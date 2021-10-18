@@ -60,7 +60,7 @@ const getRewardsBalanceScenarios: ScenarioAction[] = [
   },
 ];
 
-makeSuite('baseIncentivesController claimRewards tests', (testEnv) => {
+makeSuite('pullRewardsIncentivesController claimRewards tests', (testEnv) => {
   for (const {
     caseName,
     amountToClaim: _amountToClaim,
@@ -70,10 +70,10 @@ makeSuite('baseIncentivesController claimRewards tests', (testEnv) => {
     let amountToClaim = _amountToClaim;
     it(caseName, async () => {
       await increaseTime(100);
-      const { baseIncentivesController, aaveToken, aDaiBaseMock } = testEnv;
+      const { pullRewardsIncentivesController, aaveToken, aDaiBaseMock } = testEnv;
 
-      const distributionEndTimestamp = await baseIncentivesController.getDistributionEnd();
-      const userAddress = await baseIncentivesController.signer.getAddress();
+      const distributionEndTimestamp = await pullRewardsIncentivesController.getDistributionEnd();
+      const userAddress = await pullRewardsIncentivesController.signer.getAddress();
 
       const underlyingAsset = aDaiBaseMock.address;
       const stakedByUser = 22 * caseName.length;
@@ -81,7 +81,10 @@ makeSuite('baseIncentivesController claimRewards tests', (testEnv) => {
 
       // update emissionPerSecond in advance to not affect user calculations
       if (emissionPerSecond) {
-        await baseIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
+        await pullRewardsIncentivesController.configureAssets(
+          [underlyingAsset],
+          [emissionPerSecond]
+        );
       }
 
       const destinationAddress = to || userAddress;
@@ -90,20 +93,22 @@ makeSuite('baseIncentivesController claimRewards tests', (testEnv) => {
       await aDaiBaseMock.setUserBalanceAndSupply(stakedByUser, totalStaked);
       await aDaiBaseMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
 
-      const unclaimedRewardsBefore = await baseIncentivesController.getRewardsBalance(
+      const unclaimedRewardsBefore = await pullRewardsIncentivesController.getRewardsBalance(
         [underlyingAsset],
         userAddress
       );
 
       const userIndexBefore = await getUserIndex(
-        baseIncentivesController,
+        pullRewardsIncentivesController,
         userAddress,
         underlyingAsset
       );
-      const assetDataBefore = (await getAssetsData(baseIncentivesController, [underlyingAsset]))[0];
+      const assetDataBefore = (
+        await getAssetsData(pullRewardsIncentivesController, [underlyingAsset])
+      )[0];
 
       const claimRewardsReceipt = await waitForTx(
-        await baseIncentivesController.claimRewards(
+        await pullRewardsIncentivesController.claimRewards(
           [underlyingAsset],
           amountToClaim,
           destinationAddress
@@ -114,13 +119,15 @@ makeSuite('baseIncentivesController claimRewards tests', (testEnv) => {
       const actionBlockTimestamp = await getBlockTimestamp(claimRewardsReceipt.blockNumber);
 
       const userIndexAfter = await getUserIndex(
-        baseIncentivesController,
+        pullRewardsIncentivesController,
         userAddress,
         underlyingAsset
       );
-      const assetDataAfter = (await getAssetsData(baseIncentivesController, [underlyingAsset]))[0];
+      const assetDataAfter = (
+        await getAssetsData(pullRewardsIncentivesController, [underlyingAsset])
+      )[0];
 
-      const unclaimedRewardsAfter = await baseIncentivesController.getRewardsBalance(
+      const unclaimedRewardsAfter = await pullRewardsIncentivesController.getRewardsBalance(
         [underlyingAsset],
         userAddress
       );

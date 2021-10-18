@@ -10,8 +10,8 @@ import { getATokenMock } from '../../helpers/contracts-accessors';
 import { MintableErc20 } from '../../types/MintableErc20';
 import { ATokenMock } from '../../types/ATokenMock';
 import {
-  BaseIncentivesController,
-  BaseIncentivesController__factory,
+  PullRewardsIncentivesController,
+  PullRewardsIncentivesController__factory,
   StakedAaveV3,
   StakedTokenIncentivesController,
 } from '../../types';
@@ -33,7 +33,7 @@ export interface TestEnv {
   users: SignerWithAddress[];
   aaveToken: MintableErc20;
   aaveIncentivesController: StakedTokenIncentivesController;
-  baseIncentivesController: BaseIncentivesController;
+  pullRewardsIncentivesController: PullRewardsIncentivesController;
   stakedAave: StakedAaveV3;
   aDaiMock: ATokenMock;
   aWethMock: ATokenMock;
@@ -54,7 +54,7 @@ const testEnv: TestEnv = {
   aaveToken: {} as MintableErc20,
   stakedAave: {} as StakedAaveV3,
   aaveIncentivesController: {} as StakedTokenIncentivesController,
-  baseIncentivesController: {} as BaseIncentivesController,
+  pullRewardsIncentivesController: {} as PullRewardsIncentivesController,
   aDaiMock: {} as ATokenMock,
   aWethMock: {} as ATokenMock,
   aDaiBaseMock: {} as ATokenMock,
@@ -65,7 +65,7 @@ export async function initializeMakeSuite(
   aaveToken: MintableErc20,
   stakedAave: StakedAaveV3,
   aaveIncentivesController: StakedTokenIncentivesController,
-  baseIncentivesController: BaseIncentivesController
+  pullRewardsIncentivesController: PullRewardsIncentivesController
 ) {
   const [_deployer, _proxyAdmin, ...restSigners] = await getEthersSigners();
   const deployer: SignerWithAddress = {
@@ -88,7 +88,7 @@ export async function initializeMakeSuite(
   testEnv.rewardsVault = rewardsVault;
   testEnv.stakedAave = stakedAave;
   testEnv.aaveIncentivesController = aaveIncentivesController;
-  testEnv.baseIncentivesController = baseIncentivesController;
+  testEnv.pullRewardsIncentivesController = pullRewardsIncentivesController;
   testEnv.aaveToken = aaveToken;
   testEnv.aDaiMock = await getATokenMock({ slug: 'aDai' });
   testEnv.aWethMock = await getATokenMock({ slug: 'aWeth' });

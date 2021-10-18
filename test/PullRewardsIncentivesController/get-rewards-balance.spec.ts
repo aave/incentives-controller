@@ -28,14 +28,14 @@ const getRewardsBalanceScenarios: ScenarioAction[] = [
   },
 ];
 
-makeSuite('baseIncentivesController getRewardsBalance tests', (testEnv) => {
+makeSuite('pullRewardsIncentivesController getRewardsBalance tests', (testEnv) => {
   for (const { caseName, emissionPerSecond } of getRewardsBalanceScenarios) {
     it(caseName, async () => {
       await increaseTime(100);
 
-      const { baseIncentivesController, users, aDaiBaseMock } = testEnv;
+      const { pullRewardsIncentivesController, users, aDaiBaseMock } = testEnv;
 
-      const distributionEndTimestamp = await baseIncentivesController.DISTRIBUTION_END();
+      const distributionEndTimestamp = await pullRewardsIncentivesController.DISTRIBUTION_END();
       const userAddress = users[1].address;
       const stakedByUser = 22 * caseName.length;
       const totalStaked = 33 * caseName.length;
@@ -45,7 +45,10 @@ makeSuite('baseIncentivesController getRewardsBalance tests', (testEnv) => {
       await advanceBlock((await timeLatest()).plus(100).toNumber());
       if (emissionPerSecond) {
         await aDaiBaseMock.setUserBalanceAndSupply('0', totalStaked);
-        await baseIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
+        await pullRewardsIncentivesController.configureAssets(
+          [underlyingAsset],
+          [emissionPerSecond]
+        );
       }
       await aDaiBaseMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
       await advanceBlock((await timeLatest()).plus(100).toNumber());
@@ -55,17 +58,23 @@ makeSuite('baseIncentivesController getRewardsBalance tests', (testEnv) => {
       );
       const lastTxTimestamp = await getBlockTimestamp(lastTxReceipt.blockNumber);
 
-      const unclaimedRewardsBefore = await baseIncentivesController.getUserUnclaimedRewards(
+      const unclaimedRewardsBefore = await pullRewardsIncentivesController.getUserUnclaimedRewards(
         userAddress
       );
 
-      const unclaimedRewards = await baseIncentivesController.getRewardsBalance(
+      const unclaimedRewards = await pullRewardsIncentivesController.getRewardsBalance(
         [underlyingAsset],
         userAddress
       );
 
-      const userIndex = await getUserIndex(baseIncentivesController, userAddress, underlyingAsset);
-      const assetData = (await getAssetsData(baseIncentivesController, [underlyingAsset]))[0];
+      const userIndex = await getUserIndex(
+        pullRewardsIncentivesController,
+        userAddress,
+        underlyingAsset
+      );
+      const assetData = (
+        await getAssetsData(pullRewardsIncentivesController, [underlyingAsset])
+      )[0];
 
       await aDaiBaseMock.cleanUserState();
 

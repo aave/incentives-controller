@@ -7,8 +7,8 @@ import { DRE, waitForTx } from '../helpers/misc-utils';
 import { MintableErc20 } from '../types/MintableErc20';
 import { testDeployIncentivesController } from './helpers/deploy';
 import {
-  BaseIncentivesController,
-  BaseIncentivesController__factory,
+  PullRewardsIncentivesController,
+  PullRewardsIncentivesController__factory,
   StakedAaveV3__factory,
   StakedTokenIncentivesController__factory,
 } from '../types';
@@ -49,7 +49,7 @@ const buildTestEnv = async (
     proxyAdmin,
     aaveToken
   );
-  const { proxy: baseIncentivesProxy } = await DRE.run('deploy-base-incentives', {
+  const { proxy: baseIncentivesProxy } = await DRE.run('deploy-pull-rewards-incentives', {
     emissionManager: await deployer.getAddress(),
     rewardToken: aaveToken.address,
     rewardsVault: await vaultOfRewards.getAddress(),
@@ -71,13 +71,13 @@ const buildTestEnv = async (
     incentivesProxy.address,
     deployer
   );
-  const baseIncentivesController = BaseIncentivesController__factory.connect(
+  const pullRewardsIncentivesController = PullRewardsIncentivesController__factory.connect(
     baseIncentivesProxy,
     deployer
   );
 
   await incentivesController.setDistributionEnd(distributionDuration);
-  await baseIncentivesController.setDistributionEnd(distributionDuration);
+  await pullRewardsIncentivesController.setDistributionEnd(distributionDuration);
   await waitForTx(
     await aaveToken
       .connect(vaultOfRewards)
@@ -89,7 +89,7 @@ const buildTestEnv = async (
   return {
     aaveToken,
     incentivesController,
-    baseIncentivesController,
+    pullRewardsIncentivesController,
     aaveStake: StakedAaveV3__factory.connect(stakeProxy.address, deployer),
   };
 };
@@ -101,9 +101,14 @@ before(async () => {
     aaveToken,
     aaveStake,
     incentivesController,
-    baseIncentivesController,
+    pullRewardsIncentivesController,
   } = await buildTestEnv(deployer, rewardsVault, proxyAdmin, restWallets);
-  await initializeMakeSuite(aaveToken, aaveStake, incentivesController, baseIncentivesController);
+  await initializeMakeSuite(
+    aaveToken,
+    aaveStake,
+    incentivesController,
+    pullRewardsIncentivesController
+  );
   console.log('\n***************');
   console.log('Setup and snapshot finished');
   console.log('***************\n');

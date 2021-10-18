@@ -18,7 +18,7 @@
     "hardhat:matic": "hardhat --network matic",
     "coverage": "hardhat coverage",
     "test": "npm run test-base-incentives && npm run test-staked-incentives",
-    "test-base-incentives": "TS_NODE_TRANSPILE_ONLY=1 hardhat test ./test/__setup.spec.ts ./test/BaseIncentivesController/*.spec.ts",
+    "test-base-incentives": "TS_NODE_TRANSPILE_ONLY=1 hardhat test ./test/__setup.spec.ts ./test/PullRewardsIncentivesController/*.spec.ts",
     "test-staked-incentives": "TS_NODE_TRANSPILE_ONLY=1 hardhat test ./test/__setup.spec.ts ./test/StakedIncentivesController/*.spec.ts",
     "test-proposal": "TS_NODE_TRANSPILE_ONLY=1 MAINNET_FORK=true hardhat test ./test-fork/incentivesProposal.spec.ts",
     "test-proposal:tenderly": "TS_NODE_TRANSPILE_ONLY=1 TENDERLY=true npm run hardhat:tenderly -- test ./test-fork/incentivesProposal.spec.ts",

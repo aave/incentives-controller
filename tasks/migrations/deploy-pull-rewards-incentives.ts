@@ -2,12 +2,15 @@ import { isAddress } from 'ethers/lib/utils';
 import { task } from 'hardhat/config';
 import { ZERO_ADDRESS } from '../../helpers/constants';
 import {
-  deployBaseIncentivesController,
+  deployPullRewardsIncentivesController,
   deployInitializableAdminUpgradeabilityProxy,
 } from '../../helpers/contracts-accessors';
 import { waitForTx } from '../../helpers/misc-utils';
 
-task(`deploy-base-incentives`, `Deploy and initializes the BaseIncentivesController contract`)
+task(
+  `deploy-pull-rewards-incentives`,
+  `Deploy and initializes the PullRewardsIncentivesController contract`
+)
   .addFlag('verify')
   .addParam('rewardToken')
   .addParam('rewardsVault')
@@ -27,16 +30,16 @@ task(`deploy-base-incentives`, `Deploy and initializes the BaseIncentivesControl
       }
       emissionManager = isAddress(emissionManager) ? emissionManager : ZERO_ADDRESS;
 
-      console.log(`[BaseIncentivesController] Starting deployment:`);
+      console.log(`[PullRewardsIncentivesController] Starting deployment:`);
 
-      const incentivesControllerImpl = await deployBaseIncentivesController(
+      const incentivesControllerImpl = await deployPullRewardsIncentivesController(
         [rewardToken, emissionManager],
         verify
       );
-      console.log(`  - Deployed implementation of BaseIncentivesController`);
+      console.log(`  - Deployed implementation of PullRewardsIncentivesController`);
 
       const incentivesProxy = await deployInitializableAdminUpgradeabilityProxy(verify);
-      console.log(`  - Deployed proxy of BaseIncentivesController`);
+      console.log(`  - Deployed proxy of PullRewardsIncentivesController`);
 
       const encodedParams = incentivesControllerImpl.interface.encodeFunctionData('initialize', [
         rewardsVault,
@@ -49,9 +52,9 @@ task(`deploy-base-incentives`, `Deploy and initializes the BaseIncentivesControl
           encodedParams
         )
       );
-      console.log(`  - Initialized  BaseIncentivesController Proxy`);
+      console.log(`  - Initialized  PullRewardsIncentivesController Proxy`);
 
-      console.log(`  - Finished BaseIncentivesController deployment and initialization`);
+      console.log(`  - Finished PullRewardsIncentivesController deployment and initialization`);
       console.log(`    - Proxy: ${incentivesProxy.address}`);
       console.log(`    - Impl: ${incentivesControllerImpl.address}`);
 
