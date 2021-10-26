@@ -81,7 +81,6 @@ makeSuite('PullRewardsIncentivesController - Claim rewards on behalf', (testEnv:
       .to.emit(pullRewardsIncentivesController, 'RewardsClaimed')
       .withArgs(userWithRewards.address, thirdClaimer.address, thirdClaimer.address, '99999');
     const afterStkBalance = await aaveToken.balanceOf(thirdClaimer.address);
-    console.log('adt', afterStkBalance.toString());
     expect(afterStkBalance).to.be.gt(priorBalance);
   });
 
