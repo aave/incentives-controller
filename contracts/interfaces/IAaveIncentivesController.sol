@@ -6,9 +6,8 @@ pragma experimental ABIEncoderV2;
 import {IAaveDistributionManager} from '../interfaces/IAaveDistributionManager.sol';
 
 interface IAaveIncentivesController is IAaveDistributionManager {
-  
   event RewardsAccrued(address indexed user, uint256 amount);
-  
+
   event RewardsClaimed(
     address indexed user,
     address indexed to,
@@ -40,7 +39,6 @@ interface IAaveIncentivesController is IAaveDistributionManager {
   function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
     external;
 
-
   /**
    * @dev Called by the corresponding asset on any update that affects the rewards distribution
    * @param asset The address of the user
@@ -64,7 +62,7 @@ interface IAaveIncentivesController is IAaveDistributionManager {
     returns (uint256);
 
   /**
-   * @dev Claims reward for an user, on all the assets of the lending pool, accumulating the pending rewards
+   * @dev Claims reward for an user to the desired address, on all the assets of the lending pool, accumulating the pending rewards
    * @param amount Amount of rewards to claim
    * @param to Address that will be receiving the rewards
    * @return Rewards claimed
@@ -91,6 +89,13 @@ interface IAaveIncentivesController is IAaveDistributionManager {
   ) external returns (uint256);
 
   /**
+   * @dev Claims reward for msg.sender, on all the assets of the lending pool, accumulating the pending rewards
+   * @param amount Amount of rewards to claim
+   * @return Rewards claimed
+   **/
+  function claimRewardsToSelf(address[] calldata assets, uint256 amount) external returns (uint256);
+
+  /**
    * @dev returns the unclaimed rewards of the user
    * @param user the address of the user
    * @return the unclaimed user rewards
@@ -98,7 +103,7 @@ interface IAaveIncentivesController is IAaveDistributionManager {
   function getUserUnclaimedRewards(address user) external view returns (uint256);
 
   /**
-  * @dev for backward compatibility with previous implementation of the Incentives controller
-  */
+   * @dev for backward compatibility with previous implementation of the Incentives controller
+   */
   function REWARD_TOKEN() external view returns (address);
 }

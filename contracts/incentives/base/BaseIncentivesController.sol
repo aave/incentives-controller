@@ -121,6 +121,15 @@ abstract contract BaseIncentivesController is
   }
 
   /// @inheritdoc IAaveIncentivesController
+  function claimRewardsToSelf(address[] calldata assets, uint256 amount)
+    external
+    override
+    returns (uint256)
+  {
+    return _claimRewards(assets, amount, msg.sender, msg.sender, msg.sender);
+  }
+
+  /// @inheritdoc IAaveIncentivesController
   function setClaimer(address user, address caller) external override onlyEmissionManager {
     _authorizedClaimers[user] = caller;
     emit ClaimerSet(user, caller);
