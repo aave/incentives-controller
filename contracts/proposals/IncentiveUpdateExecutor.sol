@@ -6,6 +6,7 @@ import {DataTypes} from '../utils/DataTypes.sol';
 import {IAaveEcosystemReserveController} from '../interfaces/IAaveEcosystemReserveController.sol';
 import {IAaveIncentivesController} from '../interfaces/IAaveIncentivesController.sol';
 import {IATokenDetailed} from '../interfaces/IATokenDetailed.sol';
+import {ILendingPoolConfigurator} from '../interfaces/ILendingPoolConfigurator.sol';
 import {ILendingPoolData} from '../interfaces/ILendingPoolData.sol';
 
 contract IncentiveUpdateExecutor {
@@ -13,15 +14,17 @@ contract IncentiveUpdateExecutor {
   address constant AAVE_TOKEN = 0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9;
   address constant ECO_RESERVE_ADDRESS = 0x1E506cbb6721B83B1549fa1558332381Ffa61A93;
   address constant LENDING_POOL = 0x7d2768dE32b0b80b7a3454c06BdAc94A69DDc7A9;
+  address constant POOL_CONFIGURATOR = 0x311Bb771e4F8952E6Da169b425E7e92d6Ac45756;
   address constant INCENTIVES_CONTROLLER_PROXY_ADDRESS = 0xd784927Ff2f95ba542BfC824c8a8a98F3495f6b5;
 
   uint256 constant DISTRIBUTION_DURATION = 7776000;   // 90 days
   uint256 constant DISTRIBUTION_AMOUNT = 138600 ether;
   
-  function execute() external {
+  function execute(IATokenDetailed[] memory _aTokens, IATokenDetailed[] memory _debtTokens) external {
 
     IAaveEcosystemReserveController ecosystemReserveController = IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS);
     IAaveIncentivesController incentivesController = IAaveIncentivesController(INCENTIVES_CONTROLLER_PROXY_ADDRESS);
+    ILendingPoolConfigurator poolConfigurator = ILendingPoolConfigurator(POOL_CONFIGURATOR);
 
     address payable[19] memory reserves = [
       0x6B175474E89094C44Da98b954EedeAC495271d0F,   // DAI
@@ -45,7 +48,7 @@ contract IncentiveUpdateExecutor {
       0x4Fabb145d64652a948d72533023f6E7A623C7C53    // BUSD
     ];
 
-    uint256[] memory emissions = new uint256[](36);
+    uint256[] memory emissions = new uint256[](38);
 
     // TODO: update these to correct values
     emissions[0] = 5000000000000000;    // aDAI
@@ -86,6 +89,18 @@ contract IncentiveUpdateExecutor {
     emissions[35] = 0;   // vDebtDPI
     emissions[36] = 5000000000000000;    // aBUSD
     emissions[37] = 5000000000000000;    // vDebtBUSD
+
+    // Update aTokens
+    for (uint256 i = 0; i < _aTokens.length; i++) {
+      address underlying = _aTokens[i].UNDERLYING_ASSET_ADDRESS();
+      poolConfigurator.updateAToken(underlying, address(_aTokens[i]));
+    }
+
+    // Update vDebtTokens
+    for (uint256 i = 0; i < _debtTokens.length; i++) {
+      address underlying = _debtTokens[i].UNDERLYING_ASSET_ADDRESS();
+      poolConfigurator.updateVariableDebtToken(underlying, address(_debtTokens[i]));
+    }
 
     address[] memory assets = new address[](38);
 

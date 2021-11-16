@@ -50,6 +50,24 @@ export const spendList = {
     deposit: '0.5',
     decimals: '18',
   },
+  BUSD: {
+    holder: '0x21a31Ee1afC51d94C2eFcCAa2092aD1028285549',
+    transfer: '1000',
+    deposit: '100',
+    decimals: '18',
+  },
+  FRAX: {
+    holder: '0x5E583B6a1686f7Bc09A6bBa66E852A7C80d36F00',
+    transfer: '1000',
+    deposit: '100',
+    decimals: '18',
+  },
+  DPI: {
+    holder: '0x96E3d09A600b15341Cc266820106A1d6B4aa58C2',
+    transfer: '1000',
+    deposit: '100',
+    decimals: '18',
+  },
 };
 
 export const getReserveConfigs = async (
@@ -108,16 +126,26 @@ export const fullCycleLendingPool = async (
   await tx1.wait();
   expect(tx1).to.emit(pool, 'Deposit');
 
-  // Request loan to LendingPool
-  const tx2 = await pool.borrow(reserve.address, borrowAmount, '2', '0', proposer.address);
-  await tx2.wait();
-  expect(tx2).to.emit(pool, 'Borrow');
+  const protocolDataProvider = await AaveProtocolDataProvider__factory.connect(
+    '0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d',
+    proposer
+  );
 
-  // Repay variable loan to LendingPool
-  await (await reserve.connect(proposer).approve(pool.address, MAX_UINT_AMOUNT)).wait();
-  const tx3 = await pool.repay(reserve.address, MAX_UINT_AMOUNT, '2', proposer.address);
-  await tx3.wait();
-  expect(tx3).to.emit(pool, 'Repay');
+  const canBorrow = (await protocolDataProvider.getReserveConfigurationData(reserve.address)).borrowingEnabled;
+
+  if (canBorrow) {
+    // Request loan to LendingPool
+    const tx2 = await pool.borrow(reserve.address, borrowAmount, '2', '0', proposer.address);
+    await tx2.wait();
+    expect(tx2).to.emit(pool, 'Borrow');
+
+
+    // Repay variable loan to LendingPool
+    await (await reserve.connect(proposer).approve(pool.address, MAX_UINT_AMOUNT)).wait();
+    const tx3 = await pool.repay(reserve.address, MAX_UINT_AMOUNT, '2', proposer.address);
+    await tx3.wait();
+    expect(tx3).to.emit(pool, 'Repay');
+  }
 
   // Withdraw from LendingPool
   const priorBalance = await reserve.balanceOf(proposer.address);

@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import rawHRE from 'hardhat';
 import { BigNumber } from 'ethers';
-import { formatEther, parseEther, parseUnits } from 'ethers/lib/utils';
+import { defaultAbiCoder, formatEther, parseEther, parseUnits } from 'ethers/lib/utils';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { JsonRpcSigner } from '@ethersproject/providers';
 
@@ -30,12 +30,11 @@ import { getRewards } from '../test/DistributionManager/data-helpers/base-math';
 import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
 import { IERC20Detailed__factory } from '../types/factories/IERC20Detailed__factory';
 import { fullCycleLendingPool, getReserveConfigs, spendList } from './helpers';
-import { deployAaveIncentivesController } from '../helpers/contracts-accessors';
 import { IGovernancePowerDelegationToken__factory } from '../types/factories/IGovernancePowerDelegationToken__factory';
 import { logError } from '../helpers/tenderly-utils';
 
 const {
-  RESERVES = 'DAI,USDC,USDT,WBTC,WETH',
+  RESERVES = 'FRAX,DPI,BUSD',
   POOL_CONFIGURATOR = '0x311bb771e4f8952e6da169b425e7e92d6ac45756',
   POOL_PROVIDER = '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
   POOL_DATA_PROVIDER = '0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d',
@@ -104,15 +103,15 @@ describe('Enable incentives in target assets', () => {
     incentivesProxy = INCENTIVES_PROXY;
 
     // Deploy aTokens and debt tokens
-    // const { aTokens, variableDebtTokens } = await rawHRE.run('deploy-reserve-implementations', {
-    //   provider: POOL_PROVIDER,
-    //   assets: RESERVES,
-    //   incentivesController: incentivesProxy,
-    //   treasury: TREASURY,
-    // });
+    const { aTokens, variableDebtTokens } = await rawHRE.run('deploy-reserve-implementations', {
+      provider: POOL_PROVIDER,
+      assets: RESERVES,
+      incentivesController: incentivesProxy,
+      treasury: TREASURY,
+    });
 
-    // aTokensImpl = [...aTokens];
-    // variableDebtTokensImpl = [...variableDebtTokens];
+    aTokensImpl = [...aTokens];
+    variableDebtTokensImpl = [...variableDebtTokens];
 
     // Deploy Proposal Executor Payload
     const {
@@ -212,12 +211,14 @@ describe('Enable incentives in target assets', () => {
     // Submit proposal
     proposalId = await gov.getProposalsCount();
 
+    const calldata = defaultAbiCoder.encode(['address[]', 'address[]'], [aTokensImpl, variableDebtTokensImpl]);
+
     await gov.create(
       AAVE_SHORT_EXECUTOR, 
       [proposalExecutionPayload],
       ['0'],
-      ['execute()'],
-      ['0x'],
+      ['execute(address[],address[])'],
+      [calldata],
       [true],
       '0xf7a1f565fcd7684fba6fea5d77c5e699653e21cb6ae25fbf8c5dbc8d694c7949'
     );
