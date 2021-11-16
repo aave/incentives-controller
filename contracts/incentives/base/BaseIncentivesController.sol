@@ -55,11 +55,9 @@ abstract contract BaseIncentivesController is
       new DistributionTypes.AssetConfigInput[](assets.length);
 
     for (uint256 i = 0; i < assets.length; i++) {
+      require(uint104(emissionsPerSecond[i]) == emissionsPerSecond[i], 'Index overflow at emissionsPerSecond');
       assetsConfig[i].underlyingAsset = assets[i];
       assetsConfig[i].emissionPerSecond = uint104(emissionsPerSecond[i]);
-
-      require(assetsConfig[i].emissionPerSecond == emissionsPerSecond[i], 'INVALID_CONFIGURATION');
-
       assetsConfig[i].totalStaked = IScaledBalanceToken(assets[i]).scaledTotalSupply();
     }
     _configureAssets(assetsConfig);
