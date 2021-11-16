@@ -23,7 +23,7 @@ contract IncentiveUpdateExecutor {
     IAaveEcosystemReserveController ecosystemReserveController = IAaveEcosystemReserveController(ECO_RESERVE_ADDRESS);
     IAaveIncentivesController incentivesController = IAaveIncentivesController(INCENTIVES_CONTROLLER_PROXY_ADDRESS);
 
-    address payable[18] memory reserves = [
+    address payable[19] memory reserves = [
       0x6B175474E89094C44Da98b954EedeAC495271d0F,   // DAI
       0x056Fd409E1d7A124BD7017459dFEa2F387b6d5Cd,   // GUSD
       0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,   // USDC
@@ -41,7 +41,8 @@ contract IncentiveUpdateExecutor {
       0xba100000625a3754423978a60c9317c58a424e3D,   // BAL
       0x8E870D67F660D95d5be530380D0eC0bd388289E1,   // USDP
       0x853d955aCEf822Db058eb8505911ED77F175b99e,   // FRAX
-      0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b    // DPI
+      0x1494CA1F11D487c2bBe4543E90080AeBa4BA3C2b,   // DPI
+      0x4Fabb145d64652a948d72533023f6E7A623C7C53    // BUSD
     ];
 
     uint256[] memory emissions = new uint256[](36);
@@ -83,8 +84,10 @@ contract IncentiveUpdateExecutor {
     emissions[33] = 5000000000000000;   // vDebtFRAX
     emissions[34] = 5000000000000000;   // aDPI
     emissions[35] = 0;   // vDebtDPI
+    emissions[36] = 5000000000000000;    // aBUSD
+    emissions[37] = 5000000000000000;    // vDebtBUSD
 
-    address[] memory assets = new address[](36);
+    address[] memory assets = new address[](38);
 
     for (uint256 i = 0; i < reserves.length; i++) {
       DataTypes.ReserveData memory reserveData = ILendingPoolData(LENDING_POOL).getReserveData(reserves[i]);

@@ -262,8 +262,6 @@ describe('Enable incentives in target assets', () => {
     const { aTokenAddress, variableDebtTokenAddress } = await pool.getReserveData(tokenAddress);
     const reserve = IERC20__factory.connect(tokenAddress, proposer);
 
-    console.log(aTokenAddress)
-
     // Amounts
     const depositAmount = parseEther('10000');
 
