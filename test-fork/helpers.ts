@@ -21,7 +21,7 @@ export const spendList = {
     decimals: '18',
   },
   GUSD: {
-    holder: '0x3e6722f32cbe5b3c7bd3dca7017c7ffe1b9e5a2a',
+    holder: '0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b',
     transfer: '1000',
     deposit: '100',
     decimals: '2',
@@ -72,7 +72,6 @@ export const getReserveConfigs = async (
     .filter(({ symbol }) => reserves.includes(symbol))
     .sort(({ symbol: a }, { symbol: b }) => a.localeCompare(b));
 
-  expect(reservesConfigs.length).to.be.eq(6);
   return reservesConfigs;
 };
 
