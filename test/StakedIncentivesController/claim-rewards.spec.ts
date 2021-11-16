@@ -34,7 +34,7 @@ const getRewardsBalanceScenarios: ScenarioAction[] = [
   {
     caseName: 'Accrued rewards are not 0',
     emissionPerSecond: '2432424',
-    amountToClaim: '10',
+    amountToClaim: MAX_UINT_AMOUNT,
   },
   {
     caseName: 'Should allow -1',

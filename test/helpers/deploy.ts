@@ -53,9 +53,7 @@ export const testDeployIncentivesController = async (
       '18',
     ]
   );
-  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize', [
-    ZERO_ADDRESS,
-  ]);
+  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize');
 
   await (
     await stakeProxy['initialize(address,address,bytes)'](

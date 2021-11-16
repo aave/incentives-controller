@@ -27,9 +27,8 @@ contract StakedTokenIncentivesController is BaseIncentivesController {
 
   /**
    * @dev Initialize IStakedTokenIncentivesController
-   * @param addressesProvider the address of the corresponding addresses provider
    **/
-  function initialize(address addressesProvider) external initializer {
+  function initialize() external initializer {
     //approves the safety module to allow staking
     IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
   }
