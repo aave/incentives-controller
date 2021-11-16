@@ -169,18 +169,20 @@ abstract contract BaseIncentivesController is
     }
     uint256 unclaimedRewards = _usersUnclaimedRewards[user];
 
-    DistributionTypes.UserStakeInput[] memory userState =
-      new DistributionTypes.UserStakeInput[](assets.length);
-    for (uint256 i = 0; i < assets.length; i++) {
-      userState[i].underlyingAsset = assets[i];
-      (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceToken(assets[i])
-        .getScaledUserBalanceAndSupply(user);
-    }
+    if (amount > unclaimedRewards) {
+      DistributionTypes.UserStakeInput[] memory userState =
+        new DistributionTypes.UserStakeInput[](assets.length);
+      for (uint256 i = 0; i < assets.length; i++) {
+        userState[i].underlyingAsset = assets[i];
+        (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceToken(assets[i])
+          .getScaledUserBalanceAndSupply(user);
+      }
 
-    uint256 accruedRewards = _claimRewards(user, userState);
-    if (accruedRewards != 0) {
-      unclaimedRewards = unclaimedRewards.add(accruedRewards);
-      emit RewardsAccrued(user, accruedRewards);
+      uint256 accruedRewards = _claimRewards(user, userState);
+      if (accruedRewards != 0) {
+        unclaimedRewards = unclaimedRewards.add(accruedRewards);
+        emit RewardsAccrued(user, accruedRewards);
+      }
     }
 
     if (unclaimedRewards == 0) {
