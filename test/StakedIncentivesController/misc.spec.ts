@@ -52,7 +52,7 @@ makeSuite('AaveIncentivesController misc tests', (testEnv) => {
 
     await expect(
       aaveIncentivesController.configureAssets([aDaiMock.address], [MAX_UINT_AMOUNT])
-    ).to.be.revertedWith('INVALID_CONFIGURATION');
+    ).to.be.revertedWith('Index overflow at emissionsPerSecond');
   });
 
   it('Should REWARD_TOKEN getter returns the stake token address to keep old interface compatibility', async () => {
