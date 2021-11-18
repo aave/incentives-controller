@@ -36,9 +36,11 @@ contract IncentiveUpdateExecutor {
       0xd78037ED778ec3E2FCDb03B622c42d2F1B66D469    // aCRV
     ];
 
-    address payable[2] memory vDebtTokens = [
+    address payable[4] memory vDebtTokens = [
+      address(0),                                   // vDebtDPI
       0xCFC5923024E782Cb2862520CCfFD48Ad24e7825a,   // vDebtBUSD
-      0xc67c18F4620e003c78fd041Fb5172Cb20642FD47    // vDebtFRAX
+      0xc67c18F4620e003c78fd041Fb5172Cb20642FD47,   // vDebtFRAX
+      address(0)                                    // vDebtCRV
     ];
 
     address payable[20] memory reserves = [
@@ -107,16 +109,15 @@ contract IncentiveUpdateExecutor {
     emissions[38] = 37118390250968;     // aCRV
     emissions[39] = 0;                  // vDebtCRV
 
-    // Update aTokens
+    // Update aTokens and vDebtTokens
     for (uint256 i = 0; i < aTokens.length; i++) {
+
       address underlying = IATokenDetailed(aTokens[i]).UNDERLYING_ASSET_ADDRESS();
       poolConfigurator.updateAToken(underlying, address(aTokens[i]));
-    }
 
-    // Update vDebtTokens
-    for (uint256 i = 0; i < vDebtTokens.length; i++) {
-      address underlying = IATokenDetailed(vDebtTokens[i]).UNDERLYING_ASSET_ADDRESS();
-      poolConfigurator.updateVariableDebtToken(underlying, address(vDebtTokens[i]));
+      if (vDebtTokens[i] != address(0)) {
+        poolConfigurator.updateVariableDebtToken(underlying, address(vDebtTokens[i]));
+      }
     }
 
     address[] memory assets = new address[](40);
