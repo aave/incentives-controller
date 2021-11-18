@@ -68,6 +68,12 @@ export const spendList = {
     deposit: '100',
     decimals: '18',
   },
+  CRV: {
+    holder: '0x28C6c06298d514Db089934071355E5743bf21d60',
+    transfer: '1000',
+    deposit: '100',
+    decimals: '18',
+  }
 };
 
 export const getReserveConfigs = async (

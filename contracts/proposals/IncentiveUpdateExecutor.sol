@@ -135,6 +135,7 @@ contract IncentiveUpdateExecutor {
       DISTRIBUTION_AMOUNT
     );
 
+    // Transfer AAVE funds to the proposer to reimburse gas costs
     ecosystemReserveController.transfer(
       AAVE_TOKEN,
       PROPOSER_REFUND_ADDRESS,

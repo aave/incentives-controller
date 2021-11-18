@@ -34,7 +34,7 @@ import { IGovernancePowerDelegationToken__factory } from '../types/factories/IGo
 import { logError } from '../helpers/tenderly-utils';
 
 const {
-  RESERVES = 'FRAX,DPI,BUSD',
+  RESERVES = 'FRAX,DPI,BUSD,CRV',
   POOL_CONFIGURATOR = '0x311bb771e4f8952e6da169b425e7e92d6ac45756',
   POOL_PROVIDER = '0xB53C1a33016B2DC2fF3653530bfF1848a515c8c5',
   POOL_DATA_PROVIDER = '0x057835Ad21a177dbdd3090bB1CAE03EaCF78Fc6d',
@@ -85,8 +85,6 @@ describe('Enable incentives in target assets', () => {
   let aDAI: AToken;
   let variableDebtDAI: IERC20;
   let proposalId: BigNumber;
-  let aTokensImpl: tEthereumAddress[];
-  let variableDebtTokensImpl: tEthereumAddress[];
   let proposalExecutionPayload: tEthereumAddress;
   let symbols: {
     [key: string]: {
@@ -101,17 +99,6 @@ describe('Enable incentives in target assets', () => {
     [ proposer ] = await DRE.ethers.getSigners();
 
     incentivesProxy = INCENTIVES_PROXY;
-
-    // Deploy aTokens and debt tokens
-    const { aTokens, variableDebtTokens } = await rawHRE.run('deploy-reserve-implementations', {
-      provider: POOL_PROVIDER,
-      assets: RESERVES,
-      incentivesController: incentivesProxy,
-      treasury: TREASURY,
-    });
-
-    aTokensImpl = [...aTokens];
-    variableDebtTokensImpl = [...variableDebtTokens];
 
     // Deploy Proposal Executor Payload
     const {
@@ -362,7 +349,7 @@ describe('Enable incentives in target assets', () => {
     expect(afterDAIBalance).to.be.gt(priorDAIBalance);
   });
 
-  it('User should be able to interact with LendingPool with DAI/GUSD/USDC/USDT/WBTC/WETH', async () => {
+  it('User should be able to interact with LendingPool with the updated tokens', async () => {
     const reserveConfigs = await getReserveConfigs(POOL_PROVIDER, RESERVES, proposer);
 
     // Deposit AAVE to LendingPool to have enought collateral for future borrows
