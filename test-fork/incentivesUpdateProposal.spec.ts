@@ -211,14 +211,12 @@ describe('Enable incentives in target assets', () => {
     // Submit proposal
     proposalId = await gov.getProposalsCount();
 
-    const calldata = defaultAbiCoder.encode(['address[]', 'address[]'], [aTokensImpl, variableDebtTokensImpl]);
-
     await gov.create(
       AAVE_SHORT_EXECUTOR, 
       [proposalExecutionPayload],
       ['0'],
-      ['execute(address[],address[])'],
-      [calldata],
+      ['execute()'],
+      ['0x'],
       [true],
       '0xf7a1f565fcd7684fba6fea5d77c5e699653e21cb6ae25fbf8c5dbc8d694c7949'
     );
@@ -255,6 +253,12 @@ describe('Enable incentives in target assets', () => {
 
     const proposalState = await gov.getProposalState(proposalId);
     expect(proposalState).to.be.equal(7);
+  });
+
+  it('Proposer should receive gas refund in AAVE', async () => {
+    const aaveBalance = await aave.balanceOf('0x6904110f17feD2162a11B5FA66B188d801443Ea4');
+
+    expect(aaveBalance).to.eq(parseEther('70'));
   });
 
   it('Check emission rate', async () => {
