@@ -66,7 +66,6 @@ contract IncentiveUpdateExecutor {
 
     uint256[] memory emissions = new uint256[](40);
 
-    // TODO: update these to correct values
     emissions[0] = 1203204146880510;    // aDAI
     emissions[1] = 2406408293761020;    // vDebtDAI
     emissions[2] = 0;                   // aGUSD
