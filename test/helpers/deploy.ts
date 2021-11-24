@@ -1,7 +1,12 @@
+import {
+  deployStakedTokenStrategy,
+  deployPullRewardsStrategy,
+} from './../../helpers/contracts-accessors';
 import { Signer } from 'ethers';
 import { ZERO_ADDRESS } from '../../helpers/constants';
 import {
   deployAaveIncentivesController,
+  deployAaveIncentivesControllerV2,
   deployInitializableAdminUpgradeabilityProxy,
   deployMintableErc20,
 } from '../../helpers/contracts-accessors';
@@ -67,6 +72,34 @@ export const testDeployIncentivesController = async (
   await insertContractAddressInDb(eContractid.AaveIncentivesController, incentivesProxy.address);
 
   return { incentivesProxy, stakeProxy };
+};
+
+export const testDeployIncentivesControllerV2 = async (
+  vaultOfRewards: Signer,
+  proxyAdmin: Signer,
+  stakeToken: tEthereumAddress
+) => {
+  const emissionManager = await vaultOfRewards.getAddress();
+
+  // Deploy proxy and implementations
+  const incentivesProxy = await deployInitializableAdminUpgradeabilityProxy();
+  const incentivesImplementation = await deployAaveIncentivesControllerV2([emissionManager]);
+  const pullRewardsStrategy = await deployPullRewardsStrategy(await vaultOfRewards.getAddress());
+  const stakedTokenStrategy = await deployStakedTokenStrategy(stakeToken);
+  // Initialize proxy
+  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize');
+
+  await (
+    await incentivesProxy['initialize(address,address,bytes)'](
+      incentivesImplementation.address,
+      await proxyAdmin.getAddress(),
+      incentivesInit
+    )
+  ).wait();
+
+  await insertContractAddressInDb(eContractid.AaveIncentivesController, incentivesProxy.address);
+
+  return { incentivesProxy, pullRewardsStrategy, stakedTokenStrategy };
 };
 
 export const deployStakedAaveV3 = async (

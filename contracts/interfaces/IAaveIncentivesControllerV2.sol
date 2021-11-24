@@ -63,30 +63,6 @@ interface IAaveIncentivesControllerV2 is IAaveDistributionManagerV2 {
   ) external;
 
   /**
-   * @dev Returns a single rewards balance of an user, including already accrued and unrealized claimable rewards.
-   * @param assets The list of assets to retrieve rewards
-   * @param user The address of the user
-   * @param reward The address of the reward token
-   * @return The rewards
-   **/
-  function getUserRewardsBalance(
-    address[] calldata assets,
-    address user,
-    address reward
-  ) external view returns (uint256);
-
-  /**
-   * @dev Returns a list all rewards of an user, including already accrued and unrealized claimable rewards
-   * @param assets The list of assets to retrieve rewards
-   * @param user The address of the user
-   * @return The function returns a Tuple of rewards list and the unclaimed rewards list
-   **/
-  function getAllUserRewardsBalance(address[] calldata assets, address user)
-    external
-    view
-    returns (address[] memory, uint256[] memory);
-
-  /**
    * @dev Claims reward for an user to the desired address, on all the assets of the lending pool, accumulating the pending rewards
    * @param amount Amount of rewards to claim
    * @param to Address that will be receiving the rewards
@@ -164,14 +140,4 @@ interface IAaveIncentivesControllerV2 is IAaveDistributionManagerV2 {
   function claimAllRewardsToSelf(address[] calldata assets)
     external
     returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
-
-  /**
-   * @dev returns the unclaimed rewards of the user from contract storage, but not including unrealized rewards
-   * @param user the address of the user
-   * @return the unclaimed user rewards from contract storage
-   */
-  function getUserUnclaimedRewardFromStorage(address user, address reward)
-    external
-    view
-    returns (uint256);
 }

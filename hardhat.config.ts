@@ -104,6 +104,7 @@ const buidlerConfig: HardhatUserConfig = {
   },
   mocha: {
     timeout: 0,
+    bail: true,
   },
   tenderly: {
     project: process.env.TENDERLY_PROJECT || '',

@@ -1,3 +1,6 @@
+import { StakedTokenTransferStrategy } from './../types/StakedTokenTransferStrategy.d';
+import { PullRewardsTransferStrategy } from './../types/PullRewardsTransferStrategy.d';
+import { IncentivesControllerV2 } from './../types/IncentivesControllerV2.d';
 import {
   deployContract,
   getContractFactory,
@@ -12,6 +15,7 @@ import { IERC20Detailed } from '../types/IERC20Detailed';
 import { verifyContract } from './etherscan-verification';
 import { ATokenMock } from '../types/ATokenMock';
 import {
+  IncentivesControllerV2__factory,
   InitializableAdminUpgradeabilityProxy__factory,
   StakedTokenIncentivesController,
   StakedTokenIncentivesController__factory,
@@ -35,6 +39,33 @@ export const deployAaveIncentivesController = async (
   }
   return instance;
 };
+
+export const deployAaveIncentivesControllerV2 = async (
+  [emissionManager]: [tEthereumAddress],
+  verify?: boolean,
+  signer?: Signer | DefenderRelaySigner
+) => {
+  const id = eContractid.StakedTokenIncentivesController;
+  const args: [string] = [emissionManager];
+  const instance = await new IncentivesControllerV2__factory(
+    signer || (await getFirstSigner())
+  ).deploy(...args);
+  await instance.deployTransaction.wait();
+  if (verify) {
+    await verifyContract(instance.address, args);
+  }
+  return instance;
+};
+
+export const deployPullRewardsStrategy = async (rewardsVault: tEthereumAddress) =>
+  await deployContract<PullRewardsTransferStrategy>(eContractid.PullRewardsTransferStrategy, [
+    rewardsVault,
+  ]);
+
+export const deployStakedTokenStrategy = async (stakeContract: tEthereumAddress) =>
+  await deployContract<StakedTokenTransferStrategy>(eContractid.StakedTokenTransferStrategy, [
+    stakeContract,
+  ]);
 
 export const deployInitializableAdminUpgradeabilityProxy = async (verify?: boolean) => {
   const args: string[] = [];
@@ -64,6 +95,9 @@ export const getAaveIncentivesController = getContractFactory<StakedTokenIncenti
 
 export const getIncentivesController = async (address: tEthereumAddress) =>
   StakedTokenIncentivesController__factory.connect(address, await getFirstSigner());
+
+export const getIncentivesControllerV2 = async (address: tEthereumAddress) =>
+  IncentivesControllerV2__factory.connect(address, await getFirstSigner());
 
 export const getIErc20Detailed = getContractFactory<IERC20Detailed>(eContractid.IERC20Detailed);
 

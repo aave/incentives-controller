@@ -1,3 +1,4 @@
+import { LogDescription } from '@ethersproject/abi';
 import { BigNumber, Event } from 'ethers';
 
 const { expect } = require('chai');
@@ -80,6 +81,17 @@ export function eventChecker(event: Event, name: string, args: any[] = []): void
   expect(event.args?.length || 0 / 2).to.be.equal(args.length, `${name} signature are wrong`);
   args.forEach((arg, index) => {
     expect(event.args && event.args[index].toString()).to.be.equal(
+      arg.toString(),
+      `${name} has incorrect value on position ${index}`
+    );
+  });
+}
+
+export function eventLogChecker(log: LogDescription, name: string, args: any[] = []): void {
+  expect(log.name).to.be.equal(name, `Incorrect event emitted`);
+  expect(log.args?.length || 0 / 2).to.be.equal(args.length, `${name} signature are wrong`);
+  args.forEach((arg, index) => {
+    expect(log.args && log.args[index].toString()).to.be.equal(
       arg.toString(),
       `${name} has incorrect value on position ${index}`
     );

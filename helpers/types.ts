@@ -15,6 +15,8 @@ export enum eContractid {
   StakedTokenIncentivesController = 'StakedTokenIncentivesController',
   MockSelfDestruct = 'MockSelfDestruct',
   StakedAaveV3 = 'StakedAaveV3',
+  PullRewardsTransferStrategy = 'PullRewardsTransferStrategy',
+  StakedTokenTransferStrategy = 'StakedTokenTransferStrategy',
 }
 
 export enum eEthereumNetwork {

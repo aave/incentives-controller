@@ -1,14 +1,7 @@
 import { BigNumber, BigNumberish, BytesLike } from 'ethers';
 import { comparatorEngine, CompareRules } from '../../helpers/comparator-engine';
 import { getNormalizedDistribution } from '../../helpers/ray-math';
-import { AaveDistributionManager } from '../../../types/AaveDistributionManager';
-import { StakedTokenIncentivesController } from '../../../types';
-
-export type AssetUpdateData = {
-  emissionPerSecond: BigNumberish;
-  totalStaked: BigNumberish;
-  underlyingAsset: string;
-};
+import { DistributionManagerV2, IncentivesControllerV2 } from '../../../types';
 
 export type AssetUpdateDataV2 = {
   emissionPerSecond: BigNumberish;
@@ -20,42 +13,41 @@ export type AssetUpdateDataV2 = {
   transferStrategyParams: BytesLike;
 };
 
-export type AssetData = {
+export type RewardData = {
   emissionPerSecond: BigNumber;
   index: BigNumber;
   lastUpdateTimestamp: BigNumber;
+  distributionEnd: BigNumber;
 };
 
-export async function getAssetsData(
-  peiContract: AaveDistributionManager | StakedTokenIncentivesController,
-  assets: string[]
+export async function getRewardsData(
+  peiContract: DistributionManagerV2 | IncentivesControllerV2,
+  assets: string[],
+  rewards: string[]
 ) {
   return await Promise.all(
-    assets.map(async (underlyingAsset) => {
-      const response = await peiContract.getAssetData(underlyingAsset);
+    assets.map(async (underlyingAsset, i) => {
+      const response = await peiContract.getRewardsData(underlyingAsset, rewards[i]);
       return {
+        index: response[0],
         emissionPerSecond: response[1],
         lastUpdateTimestamp: response[2],
-        index: response[0],
+        distributionEnd: response[3],
         underlyingAsset,
       };
     })
   );
 }
 
-export function assetDataComparator<
-  Input extends { underlyingAsset: string; totalStaked: BigNumberish },
-  State extends AssetData
->(
+export function rewardsDataComparator<Input extends AssetUpdateDataV2, State extends RewardData>(
   assetConfigUpdateInput: Input,
   assetConfigBefore: State,
   assetConfigAfter: State,
   actionBlockTimestamp: number,
-  emissionEndTimestamp: number,
   compareRules: CompareRules<Input, State>
 ) {
   return comparatorEngine(
-    ['emissionPerSecond', 'index', 'lastUpdateTimestamp'],
+    ['emissionPerSecond', 'index', 'lastUpdateTimestamp', 'distributionEnd'],
     assetConfigUpdateInput,
     assetConfigBefore,
     assetConfigAfter,
@@ -77,7 +69,7 @@ export function assetDataComparator<
               stateBefore.emissionPerSecond,
               stateBefore.lastUpdateTimestamp,
               txTimestamp,
-              emissionEndTimestamp
+              stateBefore.distributionEnd
             ).toString(10);
           },
         },

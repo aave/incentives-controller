@@ -75,4 +75,39 @@ interface IAaveDistributionManagerV2 {
    * @return List of rewards supported in this contract
    **/
   function getRewardsList() external view returns (address[] memory);
+
+  /**
+   * @dev Returns a single rewards balance of an user from contract storage state, not including virtually accrued rewards since last distribution.
+   * @param user The address of the user
+   * @param reward The address of the reward token
+   * @return Unclaimed rewards from storage
+   **/
+  function getUserUnclaimedRewardsFromStorage(address user, address reward)
+    external
+    view
+    returns (uint256);
+
+  /**
+   * @dev Returns a single rewards balance of an user, including virtually accrued and unrealized claimable rewards.
+   * @param assets The list of assets to retrieve rewards
+   * @param user The address of the user
+   * @param reward The address of the reward token
+   * @return The rewards
+   **/
+  function getUserRewardsBalance(
+    address[] calldata assets,
+    address user,
+    address reward
+  ) external view returns (uint256);
+
+  /**
+   * @dev Returns a list all rewards of an user, including already accrued and unrealized claimable rewards
+   * @param assets The list of assets to retrieve rewards
+   * @param user The address of the user
+   * @return The function returns a Tuple of rewards list and the unclaimed rewards list
+   **/
+  function getAllUserRewardsBalance(address[] calldata assets, address user)
+    external
+    view
+    returns (address[] memory, uint256[] memory);
 }

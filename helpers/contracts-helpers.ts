@@ -63,7 +63,7 @@ export const getEthersSignersAddresses = async (): Promise<tEthereumAddress[]> =
   await Promise.all((await DRE.ethers.getSigners()).map((signer) => signer.getAddress()));
 
 export const getCurrentBlock = async () => {
-  return DRE.ethers.provider.getBlockNumber();
+  return (await DRE.ethers.provider.getBlock('latest')).number;
 };
 
 export const decodeAbiNumber = (data: string): number =>
@@ -215,6 +215,12 @@ export const getBlockTimestamp = async (blockNumber?: number): Promise<number> =
   if (!blockNumber) {
     blockNumber = await getCurrentBlock();
   }
-  const block = await DRE.ethers.provider.getBlock(blockNumber);
+  let block = await DRE.ethers.provider.getBlock(blockNumber);
+  if (!block) {
+    block = await DRE.ethers.provider.getBlock(blockNumber);
+  }
+  if (!block) {
+    throw `getBlockTimestamp: missing block number ${blockNumber}`;
+  }
   return block.timestamp;
 };

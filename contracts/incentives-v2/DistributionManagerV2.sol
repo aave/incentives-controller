@@ -4,13 +4,14 @@ pragma experimental ABIEncoderV2;
 
 import {IAaveDistributionManagerV2} from '../interfaces/IAaveDistributionManagerV2.sol';
 import {DistributionTypesV2} from '../lib/DistributionTypesV2.sol';
+import 'hardhat/console.sol';
 
 /**
  * @title DistributionManagerV2
  * @notice Accounting contract to manage multiple staking distributions with multiple rewards
  * @author Aave
  **/
-contract DistributionManagerV2 is IAaveDistributionManagerV2 {
+abstract contract DistributionManagerV2 is IAaveDistributionManagerV2 {
   struct RewardData {
     uint104 emissionPerSecond;
     uint104 index;
@@ -51,25 +52,6 @@ contract DistributionManagerV2 is IAaveDistributionManagerV2 {
   }
 
   /// @inheritdoc IAaveDistributionManagerV2
-  function getDistributionEnd(address asset, address reward)
-    external
-    view
-    override
-    returns (uint256)
-  {
-    return _assets[asset].rewards[reward].distributionEnd;
-  }
-
-  /// @inheritdoc IAaveDistributionManagerV2
-  function getUserAssetData(
-    address user,
-    address asset,
-    address reward
-  ) public view override returns (uint256) {
-    return _assets[asset].rewards[reward].usersIndex[user];
-  }
-
-  /// @inheritdoc IAaveDistributionManagerV2
   function getRewardsData(address asset, address reward)
     public
     view
@@ -85,6 +67,80 @@ contract DistributionManagerV2 is IAaveDistributionManagerV2 {
       _assets[asset].rewards[reward].index,
       _assets[asset].rewards[reward].emissionPerSecond,
       _assets[asset].rewards[reward].lastUpdateTimestamp,
+      _assets[asset].rewards[reward].distributionEnd
+    );
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getDistributionEnd(address asset, address reward)
+    external
+    view
+    override
+    returns (uint256)
+  {
+    return _assets[asset].rewards[reward].distributionEnd;
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getRewardsByAsset(address asset) external view override returns (address[] memory) {
+    return _assets[asset].availableRewards;
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getRewardsList() external view override returns (address[] memory) {
+    return _rewardsList;
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getUserAssetData(
+    address user,
+    address asset,
+    address reward
+  ) public view override returns (uint256) {
+    return _assets[asset].rewards[reward].usersIndex[user];
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getUserUnclaimedRewardsFromStorage(address user, address reward)
+    external
+    view
+    override
+    returns (uint256)
+  {
+    return _usersUnclaimedRewards[user][reward];
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getUserRewardsBalance(
+    address[] calldata assets,
+    address user,
+    address reward
+  ) external view override returns (uint256) {
+    return _getUserReward(user, reward, _getUserStake(assets, user));
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function getAllUserRewardsBalance(address[] calldata assets, address user)
+    external
+    view
+    override
+    returns (address[] memory rewardsList, uint256[] memory unclaimedAmounts)
+  {
+    return _getAllUserRewards(user, _getUserStake(assets, user));
+  }
+
+  /// @inheritdoc IAaveDistributionManagerV2
+  function setDistributionEnd(
+    address asset,
+    address reward,
+    uint40 distributionEnd
+  ) external override onlyEmissionManager {
+    _assets[asset].rewards[reward].distributionEnd = distributionEnd;
+
+    emit AssetConfigUpdated(
+      asset,
+      reward,
+      _assets[asset].rewards[reward].emissionPerSecond,
       _assets[asset].rewards[reward].distributionEnd
     );
   }
@@ -369,29 +425,15 @@ contract DistributionManagerV2 is IAaveDistributionManagerV2 {
     return (emissionPerSecond * timeDelta * (10**uint256(PRECISION))) / totalBalance + currentIndex;
   }
 
-  /// @inheritdoc IAaveDistributionManagerV2
-  function getRewardsByAsset(address asset) external view override returns (address[] memory) {
-    return _assets[asset].availableRewards;
-  }
-
-  /// @inheritdoc IAaveDistributionManagerV2
-  function getRewardsList() external view override returns (address[] memory) {
-    return _rewardsList;
-  }
-
-  /// @inheritdoc IAaveDistributionManagerV2
-  function setDistributionEnd(
-    address asset,
-    address reward,
-    uint40 distributionEnd
-  ) external override onlyEmissionManager {
-    _assets[asset].rewards[reward].distributionEnd = distributionEnd;
-
-    emit AssetConfigUpdated(
-      asset,
-      reward,
-      _assets[asset].rewards[reward].emissionPerSecond,
-      _assets[asset].rewards[reward].distributionEnd
-    );
-  }
+  /**
+   * @dev Get user staking distribution of a list of assets
+   * @dev To be fulfilled with custom logic of the underlying asset to get total staked supply and user stake balance
+   * @param assets List of asset addresses of the user
+   * @param user Address of the user
+   */
+  function _getUserStake(address[] calldata assets, address user)
+    internal
+    view
+    virtual
+    returns (DistributionTypesV2.UserStakeInput[] memory userState);
 }

@@ -6,6 +6,7 @@ import {DistributionManagerV2} from './DistributionManagerV2.sol';
 import {IScaledBalanceTokenV8} from '../interfaces/IScaledBalanceTokenV8.sol';
 import {IAaveIncentivesControllerV2} from '../interfaces/IAaveIncentivesControllerV2.sol';
 import {ITransferStrategy} from '../interfaces/ITransferStrategy.sol';
+import {TransferStrategyStorage} from './transfer-strategies/TransferStrategyStorage.sol';
 
 /**
  * @title IncentivesControllerV2
@@ -13,6 +14,7 @@ import {ITransferStrategy} from '../interfaces/ITransferStrategy.sol';
  * @author Aave
  **/
 contract IncentivesControllerV2 is
+  TransferStrategyStorage,
   IAaveIncentivesControllerV2,
   VersionedInitializableV8,
   DistributionManagerV2
@@ -32,6 +34,23 @@ contract IncentivesControllerV2 is
   }
 
   constructor(address emissionManager) DistributionManagerV2(emissionManager) {}
+
+  /**
+   * @dev Empty initialize IncentivesControllerV2
+   **/
+  function initialize() external initializer {}
+
+  /// @inheritdoc IAaveIncentivesControllerV2
+  function getClaimer(address user) external view override returns (address) {
+    return _authorizedClaimers[user];
+  }
+
+  /**
+   * @dev returns the revision of the implementation contract
+   */
+  function getRevision() internal pure override returns (uint256) {
+    return REVISION;
+  }
 
   /// @inheritdoc IAaveIncentivesControllerV2
   function configureAssets(DistributionTypesV2.RewardsConfigInput[] memory config)
@@ -54,50 +73,21 @@ contract IncentivesControllerV2 is
   }
 
   /// @inheritdoc IAaveIncentivesControllerV2
+  function setTransferStrategy(
+    address reward,
+    ITransferStrategy transferStrategy,
+    bytes memory params
+  ) external onlyEmissionManager {
+    _installTransferStrategy(reward, transferStrategy, params);
+  }
+
+  /// @inheritdoc IAaveIncentivesControllerV2
   function handleAction(
     address user,
     uint256 totalSupply,
     uint256 userBalance
   ) external override {
-    _updateUserRewardsPerAssetInternal(user, msg.sender, userBalance, totalSupply);
-  }
-
-  /// @inheritdoc IAaveIncentivesControllerV2
-  function getUserRewardsBalance(
-    address[] calldata assets,
-    address reward,
-    address user
-  ) external view override returns (uint256) {
-    return _getUserReward(user, reward, _getUserStake(assets, user));
-  }
-
-  /// @inheritdoc IAaveIncentivesControllerV2
-  function getAllUserRewardsBalance(address[] calldata assets, address user)
-    external
-    view
-    override
-    returns (address[] memory rewardsList, uint256[] memory unclaimedAmounts)
-  {
-    return _getAllUserRewards(user, _getUserStake(assets, user));
-  }
-
-  /**
-   * @dev Get user staking distribution of a list of assets
-   * @param assets List of asset addresses of the user
-   * @param user Address of the user
-   */
-  function _getUserStake(address[] calldata assets, address user)
-    internal
-    view
-    returns (DistributionTypesV2.UserStakeInput[] memory userState)
-  {
-    userState = new DistributionTypesV2.UserStakeInput[](assets.length);
-    for (uint256 i = 0; i < assets.length; i++) {
-      userState[i].underlyingAsset = assets[i];
-      (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceTokenV8(assets[i])
-        .getScaledUserBalanceAndSupply(user);
-    }
-    return userState;
+    _updateUserRewardsPerAssetInternal(msg.sender, user, userBalance, totalSupply);
   }
 
   /// @inheritdoc IAaveIncentivesControllerV2
@@ -132,8 +122,6 @@ contract IncentivesControllerV2 is
   ) external override returns (uint256) {
     return _claimRewards(assets, amount, msg.sender, msg.sender, msg.sender, reward);
   }
-
-  //
 
   /// @inheritdoc IAaveIncentivesControllerV2
   function claimAllRewards(address[] calldata assets, address to)
@@ -176,26 +164,24 @@ contract IncentivesControllerV2 is
     emit ClaimerSet(user, caller);
   }
 
-  /// @inheritdoc IAaveIncentivesControllerV2
-  function getClaimer(address user) external view override returns (address) {
-    return _authorizedClaimers[user];
-  }
-
-  /// @inheritdoc IAaveIncentivesControllerV2
-  function getUserUnclaimedRewardFromStorage(address user, address reward)
-    external
+  /**
+   * @dev Get user staking distribution of a list of assets
+   * @param assets List of asset addresses of the user
+   * @param user Address of the user
+   */
+  function _getUserStake(address[] calldata assets, address user)
+    internal
     view
     override
-    returns (uint256)
+    returns (DistributionTypesV2.UserStakeInput[] memory userState)
   {
-    return _usersUnclaimedRewards[user][reward];
-  }
-
-  /**
-   * @dev returns the revision of the implementation contract
-   */
-  function getRevision() internal pure override returns (uint256) {
-    return REVISION;
+    userState = new DistributionTypesV2.UserStakeInput[](assets.length);
+    for (uint256 i = 0; i < assets.length; i++) {
+      userState[i].underlyingAsset = assets[i];
+      (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceTokenV8(assets[i])
+        .getScaledUserBalanceAndSupply(user);
+    }
+    return userState;
   }
 
   /**
@@ -311,15 +297,6 @@ contract IncentivesControllerV2 is
     return size > 0;
   }
 
-  /// @inheritdoc IAaveIncentivesControllerV2
-  function setTransferStrategy(
-    address reward,
-    ITransferStrategy transferStrategy,
-    bytes memory params
-  ) external onlyEmissionManager {
-    _installTransferStrategy(reward, transferStrategy, params);
-  }
-
   function _installTransferStrategy(
     address reward,
     ITransferStrategy transferStrategy,
@@ -329,13 +306,12 @@ contract IncentivesControllerV2 is
       _isContract(address(transferStrategy)) == true,
       'TransferStrategy Logic address must be a contract'
     );
-    // Call to installHook to
+    // Call to installHook to external contract
     (bool success, bytes memory returnData) = address(transferStrategy).delegatecall(
       abi.encodeWithSelector(transferStrategy.installHook.selector, params)
     );
-
     require(
-      abi.decode(returnData, (bool)) == true && success == true,
+      success == true && abi.decode(returnData, (bool)) == true,
       'Error at installation hook of TransferStrategy'
     );
 
