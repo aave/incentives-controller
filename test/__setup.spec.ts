@@ -3,15 +3,18 @@ import { Signer, ethers } from 'ethers';
 import { getBlockTimestamp, getEthersSigners } from '../helpers/contracts-helpers';
 import { initializeMakeSuite } from './helpers/make-suite';
 import { deployMintableErc20, deployATokenMock } from '../helpers/contracts-accessors';
-import { waitForTx } from '../helpers/misc-utils';
+import { DRE, waitForTx } from '../helpers/misc-utils';
 import { MintableErc20 } from '../types/MintableErc20';
 import { testDeployIncentivesController, testDeployIncentivesControllerV2 } from './helpers/deploy';
 import {
   IncentivesControllerV2__factory,
+  PullRewardsIncentivesController,
+  PullRewardsIncentivesController__factory,
   StakedAaveV3__factory,
   StakedTokenIncentivesController__factory,
 } from '../types';
 import { parseEther } from '@ethersproject/units';
+import { MAX_UINT_AMOUNT } from '../helpers/constants';
 
 const topUpWalletsWithAave = async (
   wallets: Signer[],
@@ -34,7 +37,7 @@ const buildTestEnv = async (
   const aaveToken = await deployMintableErc20(['Aave', 'aave']);
   const rewardToken = await deployMintableErc20(['Reward', 'REW']);
 
-  await waitForTx(await aaveToken.connect(vaultOfRewards).mint(ethers.utils.parseEther('2000000')));
+  await waitForTx(await aaveToken.connect(vaultOfRewards).mint(ethers.utils.parseEther('3000000')));
   await waitForTx(
     await rewardToken.connect(vaultOfRewards).mint(ethers.utils.parseEther('2000000'))
   );
@@ -45,6 +48,7 @@ const buildTestEnv = async (
   );
 
   const { incentivesProxy, stakeProxy } = await testDeployIncentivesController(
+    deployer,
     vaultOfRewards,
     proxyAdmin,
     aaveToken
@@ -53,13 +57,33 @@ const buildTestEnv = async (
     incentivesProxy: incentivesProxyV2,
     pullRewardsStrategy,
     stakedTokenStrategy,
-  } = await testDeployIncentivesControllerV2(vaultOfRewards, proxyAdmin, stakeProxy.address);
+  } = await testDeployIncentivesControllerV2(
+    deployer,
+    vaultOfRewards,
+    proxyAdmin,
+    stakeProxy.address
+  );
+
+  const { proxy: baseIncentivesProxy } = await DRE.run('deploy-pull-rewards-incentives', {
+    emissionManager: await deployer.getAddress(),
+    rewardToken: aaveToken.address,
+    rewardsVault: await vaultOfRewards.getAddress(),
+    proxyAdmin: await proxyAdmin.getAddress(),
+  });
+
+  await waitForTx(
+    await aaveToken.connect(vaultOfRewards).approve(baseIncentivesProxy, MAX_UINT_AMOUNT)
+  );
 
   const distributionDuration = ((await getBlockTimestamp()) + 1000 * 60 * 60).toString();
   await deployATokenMock(incentivesProxy.address, 'aDai');
   await deployATokenMock(incentivesProxy.address, 'aWeth');
   await deployATokenMock(incentivesProxyV2.address, 'aDaiV2');
   await deployATokenMock(incentivesProxyV2.address, 'aWethV2');
+
+  await deployATokenMock(baseIncentivesProxy, 'aDaiBase');
+  await deployATokenMock(baseIncentivesProxy, 'aWethBase');
+
   const incentivesController = StakedTokenIncentivesController__factory.connect(
     incentivesProxy.address,
     deployer
@@ -68,7 +92,13 @@ const buildTestEnv = async (
     incentivesProxyV2.address,
     deployer
   );
+  const pullRewardsIncentivesController = PullRewardsIncentivesController__factory.connect(
+    baseIncentivesProxy,
+    deployer
+  );
+
   await incentivesController.setDistributionEnd(distributionDuration);
+  await pullRewardsIncentivesController.setDistributionEnd(distributionDuration);
   await waitForTx(
     await aaveToken
       .connect(vaultOfRewards)
@@ -89,13 +119,14 @@ const buildTestEnv = async (
     incentivesControllerV2,
     pullRewardsStrategy,
     stakedTokenStrategy,
+    pullRewardsIncentivesController,
     aaveStake: StakedAaveV3__factory.connect(stakeProxy.address, deployer),
   };
 };
 
 before(async () => {
   await rawBRE.run('set-DRE');
-  const [deployer, proxyAdmin, ...restWallets] = await getEthersSigners();
+  const [deployer, proxyAdmin, rewardVault, ...restWallets] = await getEthersSigners();
   const {
     aaveToken,
     aaveStake,
@@ -104,9 +135,8 @@ before(async () => {
     pullRewardsStrategy,
     stakedTokenStrategy,
     rewardToken,
-  } = await buildTestEnv(deployer, deployer, proxyAdmin, restWallets);
-  console.log('pull', pullRewardsStrategy.address);
-  console.log('sta', stakedTokenStrategy.address);
+    pullRewardsIncentivesController,
+  } = await buildTestEnv(deployer, rewardVault, proxyAdmin, restWallets);
   await initializeMakeSuite(
     aaveToken,
     aaveStake,
@@ -114,7 +144,8 @@ before(async () => {
     incentivesControllerV2,
     pullRewardsStrategy,
     stakedTokenStrategy,
-    rewardToken
+    rewardToken,
+    pullRewardsIncentivesController
   );
   console.log('\n***************');
   console.log('Setup and snapshot finished');

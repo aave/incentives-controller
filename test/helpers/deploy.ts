@@ -19,12 +19,12 @@ export const COOLDOWN_SECONDS = '3600'; // 1 hour in seconds
 export const UNSTAKE_WINDOW = '1800'; // 30 min in second
 
 export const testDeployIncentivesController = async (
+  emissionManager: Signer,
   vaultOfRewards: Signer,
   proxyAdmin: Signer,
   aaveToken: MintableErc20
 ) => {
-  const emissionManager = await vaultOfRewards.getAddress();
-
+  const emissionManagerAddress = await emissionManager.getAddress();
   // Deploy proxies and implementations
   const stakeProxy = await deployInitializableAdminUpgradeabilityProxy();
   const incentivesProxy = await deployInitializableAdminUpgradeabilityProxy();
@@ -34,25 +34,31 @@ export const testDeployIncentivesController = async (
     aaveToken.address,
     COOLDOWN_SECONDS,
     UNSTAKE_WINDOW,
-    emissionManager,
-    emissionManager,
+    await vaultOfRewards.getAddress(),
+    emissionManagerAddress,
     (1000 * 60 * 60).toString(),
   ]);
 
   const incentivesImplementation = await deployAaveIncentivesController([
     stakeProxy.address,
-    emissionManager,
+    emissionManagerAddress,
   ]);
 
   // Initialize proxies
   const aaveStakeInit = aaveStakeV3.interface.encodeFunctionData(
     // @ts-ignore
     'initialize(address,address,address,uint256,string,string,uint8)',
-    [emissionManager, emissionManager, emissionManager, '2000', 'Staked AAVE', 'stkAAVE', '18']
+    [
+      emissionManagerAddress,
+      emissionManagerAddress,
+      emissionManagerAddress,
+      '2000',
+      'Staked AAVE',
+      'stkAAVE',
+      '18',
+    ]
   );
-  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize', [
-    ZERO_ADDRESS,
-  ]);
+  const incentivesInit = incentivesImplementation.interface.encodeFunctionData('initialize');
 
   await (
     await stakeProxy['initialize(address,address,bytes)'](
@@ -75,11 +81,12 @@ export const testDeployIncentivesController = async (
 };
 
 export const testDeployIncentivesControllerV2 = async (
+  emissionManagerSigner: Signer,
   vaultOfRewards: Signer,
   proxyAdmin: Signer,
   stakeToken: tEthereumAddress
 ) => {
-  const emissionManager = await vaultOfRewards.getAddress();
+  const emissionManager = await emissionManagerSigner.getAddress();
 
   // Deploy proxy and implementations
   const incentivesProxy = await deployInitializableAdminUpgradeabilityProxy();

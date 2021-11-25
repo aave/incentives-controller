@@ -16,8 +16,6 @@ type ScenarioAction = {
   caseName: string;
   emissionPerSecond?: string;
   amountToClaim: string;
-  to?: string;
-  toStake?: boolean;
 };
 
 const getRewardsBalanceScenarios: ScenarioAction[] = [
@@ -34,7 +32,7 @@ const getRewardsBalanceScenarios: ScenarioAction[] = [
   {
     caseName: 'Accrued rewards are not 0',
     emissionPerSecond: '2432424',
-    amountToClaim: '10',
+    amountToClaim: MAX_UINT_AMOUNT,
   },
   {
     caseName: 'Should allow -1',
@@ -46,85 +44,76 @@ const getRewardsBalanceScenarios: ScenarioAction[] = [
     emissionPerSecond: '100',
     amountToClaim: '1034',
   },
-  {
-    caseName: 'Should withdraw to another user',
-    emissionPerSecond: '100',
-    amountToClaim: '1034',
-    to: RANDOM_ADDRESSES[5],
-  },
-  {
-    caseName: 'Should withdraw to another user and stake',
-    emissionPerSecond: '100',
-    amountToClaim: '1034',
-    to: RANDOM_ADDRESSES[5],
-  },
 ];
 
-makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
+makeSuite('pullRewardsIncentivesController claimRewardsToSelf tests', (testEnv) => {
   for (const {
     caseName,
     amountToClaim: _amountToClaim,
-    to,
     emissionPerSecond,
   } of getRewardsBalanceScenarios) {
     let amountToClaim = _amountToClaim;
     it(caseName, async () => {
       await increaseTime(100);
-      const { aaveIncentivesController, stakedAave, aDaiMock } = testEnv;
+      const { pullRewardsIncentivesController, aaveToken, aDaiBaseMock } = testEnv;
 
-      const distributionEndTimestamp = await aaveIncentivesController.getDistributionEnd();
-      const userAddress = await aaveIncentivesController.signer.getAddress();
+      const distributionEndTimestamp = await pullRewardsIncentivesController.getDistributionEnd();
+      const userAddress = await pullRewardsIncentivesController.signer.getAddress();
 
-      const underlyingAsset = aDaiMock.address;
+      const underlyingAsset = aDaiBaseMock.address;
       const stakedByUser = 22 * caseName.length;
       const totalStaked = 33 * caseName.length;
 
       // update emissionPerSecond in advance to not affect user calculations
       if (emissionPerSecond) {
-        await aaveIncentivesController.configureAssets([underlyingAsset], [emissionPerSecond]);
+        await pullRewardsIncentivesController.configureAssets(
+          [underlyingAsset],
+          [emissionPerSecond]
+        );
       }
 
-      const destinationAddress = to || userAddress;
+      const destinationAddress = userAddress;
 
-      const destinationAddressBalanceBefore = await stakedAave.balanceOf(destinationAddress);
-      await aDaiMock.setUserBalanceAndSupply(stakedByUser, totalStaked);
-      await aDaiMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
+      const destinationAddressBalanceBefore = await aaveToken.balanceOf(destinationAddress);
+      await aDaiBaseMock.setUserBalanceAndSupply(stakedByUser, totalStaked);
+      await aDaiBaseMock.handleActionOnAic(userAddress, totalStaked, stakedByUser);
 
-      const unclaimedRewardsBefore = await aaveIncentivesController.getRewardsBalance(
+      const unclaimedRewardsBefore = await pullRewardsIncentivesController.getRewardsBalance(
         [underlyingAsset],
         userAddress
       );
+
       const userIndexBefore = await getUserIndex(
-        aaveIncentivesController,
+        pullRewardsIncentivesController,
         userAddress,
         underlyingAsset
       );
-      const assetDataBefore = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
+      const assetDataBefore = (
+        await getAssetsData(pullRewardsIncentivesController, [underlyingAsset])
+      )[0];
 
       const claimRewardsReceipt = await waitForTx(
-        await aaveIncentivesController.claimRewards(
-          [underlyingAsset],
-          amountToClaim,
-          destinationAddress
-        )
+        await pullRewardsIncentivesController.claimRewardsToSelf([underlyingAsset], amountToClaim)
       );
       const eventsEmitted = claimRewardsReceipt.events || [];
 
       const actionBlockTimestamp = await getBlockTimestamp(claimRewardsReceipt.blockNumber);
 
       const userIndexAfter = await getUserIndex(
-        aaveIncentivesController,
+        pullRewardsIncentivesController,
         userAddress,
         underlyingAsset
       );
-      const assetDataAfter = (await getAssetsData(aaveIncentivesController, [underlyingAsset]))[0];
+      const assetDataAfter = (
+        await getAssetsData(pullRewardsIncentivesController, [underlyingAsset])
+      )[0];
 
-      const unclaimedRewardsAfter = await aaveIncentivesController.getRewardsBalance(
+      const unclaimedRewardsAfter = await pullRewardsIncentivesController.getRewardsBalance(
         [underlyingAsset],
         userAddress
       );
 
-      const destinationAddressBalanceAfter = await stakedAave.balanceOf(destinationAddress);
+      const destinationAddressBalanceAfter = await aaveToken.balanceOf(destinationAddress);
 
       const claimedAmount = destinationAddressBalanceAfter.sub(destinationAddressBalanceBefore);
 
@@ -134,7 +123,7 @@ makeSuite('AaveIncentivesController claimRewards tests', (testEnv) => {
         userIndexBefore
       ).toString();
 
-      await aDaiMock.cleanUserState();
+      await aDaiBaseMock.cleanUserState();
 
       if (amountToClaim === '0') {
         // state should not change

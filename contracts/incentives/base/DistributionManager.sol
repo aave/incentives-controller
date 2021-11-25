@@ -2,9 +2,9 @@
 pragma solidity 0.7.5;
 pragma experimental ABIEncoderV2;
 
-import {IAaveDistributionManager} from '../interfaces/IAaveDistributionManager.sol';
-import {SafeMath} from '../lib/SafeMath.sol';
-import {DistributionTypes} from '../lib/DistributionTypes.sol';
+import {IAaveDistributionManager} from '../../interfaces/IAaveDistributionManager.sol';
+import {SafeMath} from '../../lib/SafeMath.sol';
+import {DistributionTypes} from '../../lib/DistributionTypes.sol';
 
 /**
  * @title DistributionManager

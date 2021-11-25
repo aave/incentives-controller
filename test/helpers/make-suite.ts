@@ -11,7 +11,12 @@ import bignumberChai from 'chai-bignumber';
 import { getATokenMock } from '../../helpers/contracts-accessors';
 import { MintableErc20 } from '../../types/MintableErc20';
 import { ATokenMock } from '../../types/ATokenMock';
-import { IncentivesControllerV2, StakedAaveV3, StakedTokenIncentivesController } from '../../types';
+import {
+  IncentivesControllerV2,
+  PullRewardsIncentivesController,
+  StakedAaveV3,
+  StakedTokenIncentivesController,
+} from '../../types';
 
 chai.use(bignumberChai());
 
@@ -31,6 +36,7 @@ export interface TestEnv {
   aaveToken: MintableErc20;
   rewardToken: MintableErc20;
   aaveIncentivesController: StakedTokenIncentivesController;
+  pullRewardsIncentivesController: PullRewardsIncentivesController;
   stakedAave: StakedAaveV3;
   aDaiMock: ATokenMock;
   aWethMock: ATokenMock;
@@ -40,6 +46,8 @@ export interface TestEnv {
   pullRewardsStrategy: PullRewardsTransferStrategy;
   stakedTokenStrategy: StakedTokenTransferStrategy;
   distributionEnd: number;
+  aDaiBaseMock: ATokenMock;
+  aWethBaseMock: ATokenMock;
 }
 
 let buidlerevmSnapshotId: string = '0x1';
@@ -56,6 +64,7 @@ const testEnv: TestEnv = {
   rewardToken: {} as MintableErc20,
   stakedAave: {} as StakedAaveV3,
   aaveIncentivesController: {} as StakedTokenIncentivesController,
+  pullRewardsIncentivesController: {} as PullRewardsIncentivesController,
   aDaiMock: {} as ATokenMock,
   aWethMock: {} as ATokenMock,
   aDaiMockV2: {} as ATokenMock,
@@ -64,6 +73,8 @@ const testEnv: TestEnv = {
   pullRewardsStrategy: {} as PullRewardsTransferStrategy,
   stakedTokenStrategy: {} as StakedTokenTransferStrategy,
   distributionEnd: 0,
+  aDaiBaseMock: {} as ATokenMock,
+  aWethBaseMock: {} as ATokenMock,
 } as TestEnv;
 
 export async function initializeMakeSuite(
@@ -73,9 +84,10 @@ export async function initializeMakeSuite(
   incentivesControllerV2: IncentivesControllerV2,
   pullRewardsStrategy: PullRewardsTransferStrategy,
   stakedTokenStrategy: StakedTokenTransferStrategy,
-  rewardToken: MintableErc20
+  rewardToken: MintableErc20,
+  pullRewardsIncentivesController: PullRewardsIncentivesController
 ) {
-  const [_deployer, _proxyAdmin, ...restSigners] = await getEthersSigners();
+  const [_deployer, , _vaultOfRewards, ...restSigners] = await getEthersSigners();
   const deployer: SignerWithAddress = {
     address: await _deployer.getAddress(),
     signer: _deployer,
@@ -83,7 +95,7 @@ export async function initializeMakeSuite(
 
   const rewardsVault: SignerWithAddress = {
     address: await _deployer.getAddress(),
-    signer: _deployer,
+    signer: _vaultOfRewards,
   };
 
   for (const signer of restSigners) {
@@ -96,6 +108,7 @@ export async function initializeMakeSuite(
   testEnv.rewardsVault = rewardsVault;
   testEnv.stakedAave = stakedAave;
   testEnv.aaveIncentivesController = aaveIncentivesController;
+  testEnv.pullRewardsIncentivesController = pullRewardsIncentivesController;
   testEnv.aaveToken = aaveToken;
   testEnv.aDaiMock = await getATokenMock({ slug: 'aDai' });
   testEnv.aWethMock = await getATokenMock({ slug: 'aWeth' });
@@ -106,6 +119,8 @@ export async function initializeMakeSuite(
   testEnv.stakedTokenStrategy = stakedTokenStrategy;
   testEnv.rewardToken = rewardToken;
   testEnv.distributionEnd = (await getBlockTimestamp()) + 1000 * 60 * 60;
+  testEnv.aDaiBaseMock = await getATokenMock({ slug: 'aDaiBase' });
+  testEnv.aWethBaseMock = await getATokenMock({ slug: 'aWethBase' });
 }
 
 export function makeSuite(name: string, tests: (testEnv: TestEnv) => void) {

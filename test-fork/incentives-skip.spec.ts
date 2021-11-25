@@ -302,68 +302,6 @@ describe('Enable incentives in target assets', () => {
       }
       throw error;
     }
-    /* Other way via impersonating gov
-
-    const executor = IExecutorWithTimelockFactory.connect(
-      AAVE_SHORT_EXECUTOR,
-      impersonatedGovernance
-    );
-
-    // Calldata
-    const callData = ethers.utils.defaultAbiCoder.encode(
-      ['address', 'address[6]', 'address[6]'],
-      [incentivesProxy, aTokensImpl, variableDebtTokensImpl]
-    );
-    const test = await DRE.ethers.provider._getBlock(await latestBlock());
-
-    const { timestamp } = await DRE.ethers.provider.getBlock(await latestBlock());
-    const executionTime = BigNumber.from(timestamp.toString()).add('86415');
-    try {
-      // Queue payload
-      await (
-        await executor.queueTransaction(
-          proposalExecutionPayload,
-          '0',
-          'execute(address,address[6],address[6])',
-          callData,
-          executionTime,
-          true
-        )
-      ).wait();
-
-      const { timestamp: time2 } = await DRE.ethers.provider.getBlock(await latestBlock());
-      console.log('time2', time2, executionTime.toString());
-      const neededTime = executionTime.sub(time2.toString());
-      // Pass time
-      await increaseTime(Number(neededTime.add('1000').toString()));
-      const { timestamp: tim32 } = await DRE.ethers.provider.getBlock(await latestBlock());
-      console.log('current', tim32, executionTime.toString());
-      expect(tim32).to.be.gte(Number(executionTime.toString()), 'chain.timestamp below execution');
-      // Execute payload
-      await (
-        await executor.executeTransaction(
-          proposalExecutionPayload,
-          '0',
-          'execute(address,address[6],address[6])',
-          callData,
-          executionTime,
-          true,
-          { gasLimit: 3000000 }
-        )
-      ).wait();
-    } catch (error) {
-      if (DRE.network.name.includes('tenderly')) {
-        const transactionLink = `https://dashboard.tenderly.co/${DRE.config.tenderly.username}/${
-          DRE.config.tenderly.project
-        }/fork/${DRE.tenderly.network().getFork()}/simulation/${DRE.tenderly.network().getHead()}`;
-        console.error(
-          '[TENDERLY] Transaction Reverted. Check TX simulation error at:',
-          transactionLink
-        );
-      }
-      throw error;
-    }
-    */
   });
 
   it('Check emission rate', async () => {

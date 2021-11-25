@@ -39,9 +39,9 @@ makeSuite('AaveIncentivesController - Claim rewards on behalf', (testEnv: TestEn
     expect(afterStkBalance).to.be.eq(priorStkBalance);
   });
   it('Should setClaimer pass if called by emission manager', async () => {
-    const { aaveIncentivesController, users, rewardsVault } = testEnv;
+    const { aaveIncentivesController, users, deployer } = testEnv;
     const [userWithRewards, thirdClaimer] = users;
-    const emissionManager = rewardsVault;
+    const emissionManager = deployer;
 
     await expect(
       aaveIncentivesController
@@ -100,10 +100,10 @@ makeSuite('AaveIncentivesController - Claim rewards on behalf', (testEnv: TestEn
   });
 
   it('Should claimRewardsOnBehalf revert if user argument is ZERO_ADDRESS', async () => {
-    const { aaveIncentivesController, users, aDaiMock, rewardsVault } = testEnv;
+    const { aaveIncentivesController, users, aDaiMock, deployer } = testEnv;
     const [, thirdClaimer] = users;
 
-    const emissionManager = rewardsVault;
+    const emissionManager = deployer;
 
     await waitForTx(await aaveIncentivesController.configureAssets([aDaiMock.address], ['2000']));
     await waitForTx(await aDaiMock.setUserBalanceAndSupply('300000', '30000'));

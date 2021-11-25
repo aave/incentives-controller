@@ -4,7 +4,7 @@ export interface SymbolMap<T> {
   [symbol: string]: T;
 }
 
-export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork;
+export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork | eAvalancheNetwork;
 
 export enum eContractid {
   DistributionManager = 'DistributionManager',
@@ -17,6 +17,7 @@ export enum eContractid {
   StakedAaveV3 = 'StakedAaveV3',
   PullRewardsTransferStrategy = 'PullRewardsTransferStrategy',
   StakedTokenTransferStrategy = 'StakedTokenTransferStrategy',
+  PullRewardsIncentivesController = 'PullRewardsIncentivesController',
 }
 
 export enum eEthereumNetwork {
@@ -38,6 +39,11 @@ export enum eXDaiNetwork {
   xdai = 'xdai',
 }
 
+export enum eAvalancheNetwork {
+  fuji = 'fuji',
+  avalanche = 'avalanche',
+}
+
 export enum EthereumNetworkNames {
   kovan = 'kovan',
   ropsten = 'ropsten',
@@ -50,7 +56,8 @@ export enum EthereumNetworkNames {
 export type iParamsPerNetwork<T> =
   | iEthereumParamsPerNetwork<T>
   | iPolygonParamsPerNetwork<T>
-  | iXDaiParamsPerNetwork<T>;
+  | iXDaiParamsPerNetwork<T>
+  | iAvalancheParamsPerNetwork<T>;
 
 export interface iEthereumParamsPerNetwork<T> {
   [eEthereumNetwork.coverage]: T;
@@ -69,6 +76,11 @@ export interface iPolygonParamsPerNetwork<T> {
 
 export interface iXDaiParamsPerNetwork<T> {
   [eXDaiNetwork.xdai]: T;
+}
+
+export interface iAvalancheParamsPerNetwork<T> {
+  [eAvalancheNetwork.fuji]: T;
+  [eAvalancheNetwork.avalanche]: T;
 }
 
 export type tEthereumAddress = string;
