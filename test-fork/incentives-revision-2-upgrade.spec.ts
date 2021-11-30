@@ -1,8 +1,9 @@
 import { JsonRpcSigner } from '@ethersproject/providers';
 import { SignerWithAddress } from '@nomiclabs/hardhat-ethers/dist/src/signer-with-address';
 import { expect } from 'chai';
-import { constants } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import rawHRE from 'hardhat';
+import { Address } from 'hardhat-deploy/dist/types';
 import { deployAaveIncentivesController, deploySelfDestruct } from '../helpers/contracts-accessors';
 import { DRE, impersonateAccountsHardhat, increaseTime } from '../helpers/misc-utils';
 import { getUserIndex } from '../test/DistributionManager/data-helpers/asset-user-data';
@@ -27,11 +28,16 @@ const DAI_WHALE = '0x1e3d6eab4bcf24bcd04721caa11c478a2e59852d';
 const STAKED_AAVE = '0x4da27a545c0c5B758a6BA100e3a049001de870f5';
 
 describe('Upgrade to and test Revision #2 of the implementation', () => {
+  const rewardsAccrualDuration = 86400;
   let ethers;
 
-  let incentives: IAaveIncentivesController, pool: ILendingPool;
-  let aDai: IERC20, dai: IERC20, stkAave: IERC20;
+  let incentives: IAaveIncentivesController,
+    incentivesProxy: InitializableAdminUpgradeabilityProxy,
+    pool: ILendingPool;
+  let aDai: IERC20, dai: IERC20, stkAave: IERC20, rewardsAssets: Address[];
   let claimer: SignerWithAddress, daiWhale: JsonRpcSigner;
+  let nextIncentivesImplementationAddress: Address;
+  let preUpgradeRewardsBalance: BigNumber;
 
   before(async () => {
     await rawHRE.run('set-DRE');
@@ -57,7 +63,7 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
       'StakedTokenIncentivesController',
       INCENTIVES_PROXY
     )) as IAaveIncentivesController;
-    const incentivesProxy = (await ethers.getContractAt(
+    incentivesProxy = (await ethers.getContractAt(
       'InitializableAdminUpgradeabilityProxy',
       INCENTIVES_PROXY
     )) as InitializableAdminUpgradeabilityProxy;
@@ -72,7 +78,6 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
 
     // Spoof signers for the necessary accounts
     await impersonateAccountsHardhat([INCENTIVES_PROXY_ADMIN, DAI_WHALE]);
-    const incentivesProxyAdmin = ethers.provider.getSigner(INCENTIVES_PROXY_ADMIN);
     daiWhale = ethers.provider.getSigner(DAI_WHALE);
 
     // Seed the impersonated accounts with some ETH for gas
@@ -84,24 +89,16 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
     }
 
     // Deploy next incentives implementation
-    const { address: nextIncentivesImplementation } = await deployAaveIncentivesController([
+    const nextIncentivesImplementation = await deployAaveIncentivesController([
       STAKED_AAVE,
       AAVE_SHORT_EXECUTOR,
     ]);
+    nextIncentivesImplementationAddress = nextIncentivesImplementation.address;
 
-    // Upgrade the incentives proxy use the new implementation
-    await incentivesProxy.connect(incentivesProxyAdmin).upgradeTo(nextIncentivesImplementation);
+    rewardsAssets = [aDai.address];
   });
 
-  it('continues to accrue rewards correctly, and allows aToken holder to claim incentives using claimRewardsToSelf()', async () => {
-    const rewardsAssets = [aDai.address];
-
-    // Rewards should be accruing for aDai
-    expect((await incentives.getAssetData(aDai.address))[1]).to.be.gt(0);
-
-    // Claim all rewards to zero out previously-accrued rewards
-    await incentives.connect(claimer).claimRewardsToSelf(rewardsAssets, constants.MaxUint256);
-
+  it('pre-upgrade: accrues rewards', async () => {
     // Seed claimer with DAI
     const daiDepositAmount = ethers.utils.parseEther('10000');
     await dai.connect(daiWhale).transfer(claimer.address, daiDepositAmount);
@@ -111,9 +108,54 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
     await pool.connect(claimer).deposit(dai.address, daiDepositAmount, claimer.address, 0);
     expect(await aDai.balanceOf(claimer.address)).to.be.gt(0);
 
+    // Claim all rewards to zero out previously-accrued rewards
+    await incentives
+      .connect(claimer)
+      .claimRewards(rewardsAssets, constants.MaxUint256, claimer.address);
+
     // Wait for some time to accrue rewards
-    await increaseTime(86400);
-    expect(await incentives.getRewardsBalance(rewardsAssets, claimer.address)).to.be.gt(0);
+    await increaseTime(rewardsAccrualDuration);
+    preUpgradeRewardsBalance = await incentives.getRewardsBalance(rewardsAssets, claimer.address);
+    expect(preUpgradeRewardsBalance).to.be.gt(0);
+  });
+
+  it('upgrades', async () => {
+    // Upgrade the incentives proxy use the new implementation
+    const incentivesProxyAdmin = ethers.provider.getSigner(INCENTIVES_PROXY_ADMIN);
+    await incentivesProxy
+      .connect(incentivesProxyAdmin)
+      .upgradeTo(nextIncentivesImplementationAddress);
+  });
+
+  it('post-upgrade: continues to accrue rewards correctly, and allows aToken holder to claim incentives using claimRewardsToSelf()', async () => {
+    // Tolerance for imprecise passage of time between actions
+    const rewardsCorrectnessTolerance = 10 ** 12;
+
+    // Rewards should be accruing for aDai
+    expect((await incentives.getAssetData(aDai.address))[1]).to.be.gt(0);
+
+    // Confirm the accrued rewards balance is more-or-less the same as pre-upgrade
+    const postUpgradeRewardsBalance = await incentives.getRewardsBalance(
+      rewardsAssets,
+      claimer.address
+    );
+    expect(postUpgradeRewardsBalance).to.be.gte(preUpgradeRewardsBalance);
+    expect(postUpgradeRewardsBalance).to.be.lte(
+      preUpgradeRewardsBalance.add(rewardsCorrectnessTolerance)
+    );
+
+    // Wait for some time to accrue more rewards
+    await increaseTime(rewardsAccrualDuration);
+
+    // Rewards accrued post-upgrade should be the same as those accrued pre-upgrade (equal durations)
+    const postUpgradeIncreasedTimeRewardsBalance = await incentives.getRewardsBalance(
+      rewardsAssets,
+      claimer.address
+    );
+    expect(postUpgradeIncreasedTimeRewardsBalance).to.be.gte(preUpgradeRewardsBalance.mul(2));
+    expect(postUpgradeIncreasedTimeRewardsBalance).to.be.lte(
+      preUpgradeRewardsBalance.mul(2).add(rewardsCorrectnessTolerance)
+    );
 
     // Checkpoint claimer data prior to claim
     const aTokenBalance = await aDai.connect(claimer).scaledBalanceOf(claimer.address);
