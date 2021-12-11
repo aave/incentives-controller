@@ -4,7 +4,7 @@ export interface SymbolMap<T> {
   [symbol: string]: T;
 }
 
-export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork | eAvalancheNetwork;
+export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork | eAvalancheNetwork | eAuroraNetwork;
 
 export enum eContractid {
   DistributionManager = 'DistributionManager',
@@ -33,6 +33,10 @@ export enum ePolygonNetwork {
   mumbai = 'mumbai',
 }
 
+export enum eAuroraNetwork {
+  aurora = 'aurora'
+}
+
 export enum eXDaiNetwork {
   xdai = 'xdai',
 }
@@ -55,6 +59,7 @@ export type iParamsPerNetwork<T> =
   | iEthereumParamsPerNetwork<T>
   | iPolygonParamsPerNetwork<T>
   | iXDaiParamsPerNetwork<T>
+  | iAuroraParamsPerNetwork<T>
   | iAvalancheParamsPerNetwork<T>;
 
 export interface iEthereumParamsPerNetwork<T> {
@@ -74,6 +79,10 @@ export interface iPolygonParamsPerNetwork<T> {
 
 export interface iXDaiParamsPerNetwork<T> {
   [eXDaiNetwork.xdai]: T;
+}
+
+export interface iAuroraParamsPerNetwork<T> {
+  [eAuroraNetwork.aurora]: T;
 }
 
 export interface iAvalancheParamsPerNetwork<T> {

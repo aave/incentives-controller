@@ -4,6 +4,7 @@ import { HardhatUserConfig } from 'hardhat/types';
 // @ts-ignore
 import { accounts } from './test-wallets';
 import {
+  eAuroraNetwork,
   eAvalancheNetwork,
   eEthereumNetwork,
   eNetwork,
@@ -122,6 +123,7 @@ const buidlerConfig: HardhatUserConfig = {
     tenderly: getCommonNetworkConfig(eEthereumNetwork.tenderlyMain, 3030),
     matic: getCommonNetworkConfig(ePolygonNetwork.matic, 137),
     mumbai: getCommonNetworkConfig(ePolygonNetwork.mumbai, 80001),
+    aurora: getCommonNetworkConfig(eAuroraNetwork.aurora, 1313161554),
     xdai: getCommonNetworkConfig(eXDaiNetwork.xdai, 100),
     fuji: getCommonNetworkConfig(eAvalancheNetwork.fuji, 43113),
     avalanche: getCommonNetworkConfig(eAvalancheNetwork.avalanche, 43114),

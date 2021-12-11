@@ -30,9 +30,9 @@ export const deployAaveIncentivesController = async (
     signer || (await getFirstSigner())
   ).deploy(...args);
   await instance.deployTransaction.wait();
-  if (verify) {
-    await verifyContract(instance.address, args);
-  }
+  // if (verify) {
+  //   await verifyContract(instance.address, args);
+  // }
   return instance;
 };
 
