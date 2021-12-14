@@ -8,6 +8,9 @@
 
 This repo contains the code and implementation of the contracts used to activate the liquidity mining program on the main market of the Aave protocol.
 
+## Deploy on Aurora
+npx hardhat --network aurora deploy-incentives-impl
+
 ## Implementation
 
 The rewards are distributed in the form of stkAAVE, which is obtained by staking Aave in the Safety Module Staking contract located at https://etherscan.io/address/0x4da27a545c0c5b758a6ba100e3a049001de870f5.
