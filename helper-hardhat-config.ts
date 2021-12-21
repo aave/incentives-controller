@@ -35,7 +35,8 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [eXDaiNetwork.xdai]: 'https://rpc.xdaichain.com/',
   [eAvalancheNetwork.avalanche]: 'https://cchain.explorer.avax.network/',
   [eAvalancheNetwork.fuji]: 'https://api.avax-test.network/ext/bc/C/rpc',
-  [eAuroraNetwork.aurora]: 'https://mainnet.aurora.dev',
+  // [eAuroraNetwork.aurora]: 'https://mainnet.aurora.dev',
+  [eAuroraNetwork.aurora]: 'http://localhost:8545',
 };
 
 export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {

@@ -5,6 +5,7 @@ import {
   deployPullRewardsIncentivesController,
   deployInitializableAdminUpgradeabilityProxy,
 } from '../../helpers/contracts-accessors';
+import { getFirstSigner } from '../../helpers/contracts-helpers';
 import { waitForTx } from '../../helpers/misc-utils';
 
 task(
@@ -12,28 +13,28 @@ task(
   `Deploy and initializes the PullRewardsIncentivesController contract`
 )
   .addFlag('verify')
-  .addParam('rewardToken')
-  .addParam('rewardsVault')
-  .addParam('emissionManager')
-  .addParam('proxyAdmin', `The address to be added as an Admin role at the Transparent Proxy.`)
+  .addParam('token')
+  .addParam('vault')
   .setAction(
-    async ({ verify, rewardToken, rewardsVault, emissionManager, proxyAdmin }, localBRE) => {
+    async ({ verify, token, vault }, localBRE) => {
       await localBRE.run('set-DRE');
-      if (!isAddress(proxyAdmin)) {
-        throw Error('Missing or incorrect admin param');
-      }
-      if (!isAddress(rewardToken)) {
+      const deployer = await getFirstSigner();
+      const proxyAdmin = deployer.address;
+      // if (!isAddress(proxyAdmin)) {
+      //   throw Error('Missing or incorrect admin param');
+      // }
+      if (!isAddress(token)) {
         throw Error('Missing or incorrect rewardToken param');
       }
-      if (!isAddress(rewardsVault)) {
+      if (!isAddress(vault)) {
         throw Error('Missing or incorrect rewardsVault param');
       }
-      emissionManager = isAddress(emissionManager) ? emissionManager : ZERO_ADDRESS;
+      const emissionManager = ZERO_ADDRESS;
 
       console.log(`[PullRewardsIncentivesController] Starting deployment:`);
 
       const incentivesControllerImpl = await deployPullRewardsIncentivesController(
-        [rewardToken, emissionManager],
+        [token, emissionManager],
         verify
       );
       console.log(`  - Deployed implementation of PullRewardsIncentivesController`);
@@ -42,7 +43,7 @@ task(
       console.log(`  - Deployed proxy of PullRewardsIncentivesController`);
 
       const encodedParams = incentivesControllerImpl.interface.encodeFunctionData('initialize', [
-        rewardsVault,
+        vault,
       ]);
 
       await waitForTx(

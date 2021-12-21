@@ -9,7 +9,7 @@
 This repo contains the code and implementation of the contracts used to activate the liquidity mining program on the main market of the Aave protocol.
 
 ## Deploy on Aurora
-npx hardhat --network aurora deploy-incentives-impl
+`npx hardhat --network aurora deploy-pull-rewards-incentives --token <addr> --vault <addr>`
 
 ## Implementation
 
