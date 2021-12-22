@@ -59,6 +59,8 @@ export const rawInsertContractAddressInDb = async (id: string, address: tEthereu
 export const getEthersSigners = async (): Promise<Signer[]> =>
   await Promise.all(await DRE.ethers.getSigners());
 
+export const getSigner = async (i: number) => (await getEthersSigners())[i];
+
 export const getEthersSignersAddresses = async (): Promise<tEthereumAddress[]> =>
   await Promise.all((await DRE.ethers.getSigners()).map((signer) => signer.getAddress()));
 

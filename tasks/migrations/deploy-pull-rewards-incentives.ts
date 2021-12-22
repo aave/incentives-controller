@@ -5,7 +5,7 @@ import {
   deployPullRewardsIncentivesController,
   deployInitializableAdminUpgradeabilityProxy,
 } from '../../helpers/contracts-accessors';
-import { getFirstSigner } from '../../helpers/contracts-helpers';
+import { getFirstSigner, getSigner } from '../../helpers/contracts-helpers';
 import { waitForTx } from '../../helpers/misc-utils';
 
 task(
@@ -19,17 +19,14 @@ task(
     async ({ verify, token, vault }, localBRE) => {
       await localBRE.run('set-DRE');
       const deployer = await getFirstSigner();
-      const proxyAdmin = deployer.address;
-      // if (!isAddress(proxyAdmin)) {
-      //   throw Error('Missing or incorrect admin param');
-      // }
+      const proxyAdmin = await (await getSigner(1)).getAddress();
+      const emissionManager = deployer.address;
       if (!isAddress(token)) {
         throw Error('Missing or incorrect rewardToken param');
       }
       if (!isAddress(vault)) {
         throw Error('Missing or incorrect rewardsVault param');
       }
-      const emissionManager = ZERO_ADDRESS;
 
       console.log(`[PullRewardsIncentivesController] Starting deployment:`);
 
@@ -58,6 +55,8 @@ task(
       console.log(`  - Finished PullRewardsIncentivesController deployment and initialization`);
       console.log(`    - Proxy: ${incentivesProxy.address}`);
       console.log(`    - Impl: ${incentivesControllerImpl.address}`);
+      console.log(`    - Proxy Admin is ${proxyAdmin}`);
+      console.log(`    - Emission Manager is ${emissionManager}`);
 
       return {
         proxy: incentivesProxy.address,
