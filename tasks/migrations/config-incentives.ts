@@ -83,5 +83,11 @@ task(
 
         console.log(`${assetSymbol} configured.`)
       }
+
+      const distributionEnd = Math.floor(Date.now() / 1000) + (60 * 24 * 3600); // 2 months from now
+      await waitForTx(
+        await incentivesProxy.setDistributionEnd(distributionEnd)
+      );
+      console.log(`Distribution end set to ${distributionEnd}`);
     }
   );
