@@ -9,6 +9,7 @@ import {
   eNetwork,
   ePolygonNetwork,
   eXDaiNetwork,
+  eAstarNetwork
 } from './helpers/types';
 import { BUIDLEREVM_CHAINID, COVERAGE_CHAINID } from './helpers/constants';
 import { NETWORKS_RPC_URL, NETWORKS_DEFAULT_GAS } from './helper-hardhat-config';
@@ -125,6 +126,7 @@ const buidlerConfig: HardhatUserConfig = {
     xdai: getCommonNetworkConfig(eXDaiNetwork.xdai, 100),
     fuji: getCommonNetworkConfig(eAvalancheNetwork.fuji, 43113),
     avalanche: getCommonNetworkConfig(eAvalancheNetwork.avalanche, 43114),
+    shibuya: getCommonNetworkConfig(eAstarNetwork.shibuya, 81),
     hardhat: {
       hardfork: 'istanbul',
       blockGasLimit: DEFAULT_BLOCK_GAS_LIMIT,
