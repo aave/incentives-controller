@@ -21,3 +21,41 @@ The implementation logic is defined as follow:
 - For each user, a `userIndex` keeps track of the user accumulated rewards
 - On `handleAction()`, that is triggered whenever an aToken/debt Token is minted/burned by a user, the `userIndex` and the `assetIndex` are accumulated depending on the time passed since the last action
 - At any point in time the user pending rewards can be queried through the `getRewardsBalance()` function
+
+## About Development
+
+### Setup
+
+create `.env` file like
+
+```bash
+# Mnemonic, only first address will be used
+MNEMONIC=""
+
+# Add Alchemy or Infura provider keys, alchemy takes preference at the config level
+ALCHEMY_KEY=""
+INFURA_KEY=""
+BWARE_LABS_KEY=""
+
+# Optional Etherscan key, for automatize the verification of the contracts at Etherscan
+ETHERSCAN_KEY=""
+
+# Optional, if you plan to use Tenderly scripts
+TENDERLY_PROJECT=""
+TENDERLY_USERNAME=""
+
+# defender Relay
+DEFENDER_API_KEY=""
+DEFENDER_SECRET_KEY=""
+```
+
+### Deploy
+
+```bash
+npm install
+npm run compile
+docker-compose up
+# --- other terminal ---
+docker-compose exec contracts-env bash
+npm run deploy:incentives-controller-impl:shibuya
+```
