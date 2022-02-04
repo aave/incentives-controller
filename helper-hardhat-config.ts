@@ -1,5 +1,6 @@
 // @ts-ignore
 import {
+  eAstarNetwork,
   eAvalancheNetwork,
   eEthereumNetwork,
   ePolygonNetwork,
@@ -11,6 +12,7 @@ require('dotenv').config();
 
 const INFURA_KEY = process.env.INFURA_KEY || '';
 const ALCHEMY_KEY = process.env.ALCHEMY_KEY || '';
+const BWARE_LABS_KEY = process.env.BWARE_LABS_KEY || '';
 const TENDERLY_FORK_ID = process.env.TENDERLY_FORK_ID || '';
 
 const GWEI = 1000 * 1000 * 1000;
@@ -34,6 +36,9 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [eXDaiNetwork.xdai]: 'https://rpc.xdaichain.com/',
   [eAvalancheNetwork.avalanche]: 'https://cchain.explorer.avax.network/',
   [eAvalancheNetwork.fuji]: 'https://api.avax-test.network/ext/bc/C/rpc',
+  [eAstarNetwork.shibuya]: BWARE_LABS_KEY
+    ? `https://shibuya-api.bwarelabs.com/${BWARE_LABS_KEY}`
+    : 'https://rpc.shibuya.astar.network:8545'
 };
 
 export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
@@ -49,4 +54,5 @@ export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
   [eXDaiNetwork.xdai]: 1 * GWEI,
   [eAvalancheNetwork.fuji]: 225 * GWEI,
   [eAvalancheNetwork.avalanche]: 225 * GWEI,
+  [eAstarNetwork.shibuya]: 1 * GWEI,
 };

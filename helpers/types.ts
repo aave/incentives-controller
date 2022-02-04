@@ -4,7 +4,7 @@ export interface SymbolMap<T> {
   [symbol: string]: T;
 }
 
-export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork | eAvalancheNetwork;
+export type eNetwork = eEthereumNetwork | ePolygonNetwork | eXDaiNetwork | eAvalancheNetwork | eAstarNetwork;
 
 export enum eContractid {
   DistributionManager = 'DistributionManager',
@@ -42,6 +42,10 @@ export enum eAvalancheNetwork {
   avalanche = 'avalanche',
 }
 
+export enum eAstarNetwork {
+  shibuya = 'shibuya',
+}
+
 export enum EthereumNetworkNames {
   kovan = 'kovan',
   ropsten = 'ropsten',
@@ -55,7 +59,8 @@ export type iParamsPerNetwork<T> =
   | iEthereumParamsPerNetwork<T>
   | iPolygonParamsPerNetwork<T>
   | iXDaiParamsPerNetwork<T>
-  | iAvalancheParamsPerNetwork<T>;
+  | iAvalancheParamsPerNetwork<T>
+  | iAstarParamsPerNetwork<T>;
 
 export interface iEthereumParamsPerNetwork<T> {
   [eEthereumNetwork.coverage]: T;
@@ -79,6 +84,10 @@ export interface iXDaiParamsPerNetwork<T> {
 export interface iAvalancheParamsPerNetwork<T> {
   [eAvalancheNetwork.fuji]: T;
   [eAvalancheNetwork.avalanche]: T;
+}
+
+export interface iAstarParamsPerNetwork<T> {
+  [eAstarNetwork.shibuya]: T;
 }
 
 export type tEthereumAddress = string;

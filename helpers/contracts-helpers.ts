@@ -13,6 +13,8 @@ import {
   iEthereumParamsPerNetwork,
   iPolygonParamsPerNetwork,
   iXDaiParamsPerNetwork,
+  eAstarNetwork,
+  iAstarParamsPerNetwork,
 } from './types';
 import { Artifact } from 'hardhat/types';
 import { verifyContract } from './etherscan-verification';
@@ -144,6 +146,7 @@ export const getParamPerNetwork = <T>(param: iParamsPerNetwork<T>, network: eNet
   } = param as iEthereumParamsPerNetwork<T>;
   const { matic, mumbai } = param as iPolygonParamsPerNetwork<T>;
   const { xdai } = param as iXDaiParamsPerNetwork<T>;
+  const { shibuya } = param as iAstarParamsPerNetwork<T>;
   const MAINNET_FORK = process.env.MAINNET_FORK === 'true';
   if (MAINNET_FORK) {
     return main;
@@ -170,6 +173,8 @@ export const getParamPerNetwork = <T>(param: iParamsPerNetwork<T>, network: eNet
       return mumbai;
     case eXDaiNetwork.xdai:
       return xdai;
+    case eAstarNetwork.shibuya:
+      return shibuya;
   }
 };
 
