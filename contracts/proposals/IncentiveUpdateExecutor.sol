@@ -25,7 +25,7 @@ contract IncentiveUpdateExecutor {
     IAaveEcosystemReserveController ecosystemReserveController = IAaveEcosystemReserveController(CONTROLLER_ECO_RESERVE);
     IAaveIncentivesController incentivesController = IAaveIncentivesController(INCENTIVES_CONTROLLER_PROXY_ADDRESS);
 
-    address payable[20] memory reserves = [
+    address payable[19] memory reserves = [
       0x6B175474E89094C44Da98b954EedeAC495271d0F,   // DAI
       0x056Fd409E1d7A124BD7017459dFEa2F387b6d5Cd,   // GUSD
       0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48,   // USDC
@@ -36,7 +36,6 @@ contract IncentiveUpdateExecutor {
       0x57Ab1ec28D129707052df4dF418D58a2D46d5f51,   // sUSD
       0x0bc529c00C6401aEF6D220BE8C6Ea1667F6Ad93e,   // YFI
       0x8798249c2E607446EfB7Ad49eC89dD1865Ff4272,   // xSUSHI
-      0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984,   // UNI
       0x9f8F72aA9304c8B593d555F12eF6589cC3A579A2,   // MKR
       0x0000000000085d4780B73119b644AE5ecd22b376,   // TUSD
       0x03ab458634910AaD20eF5f1C8ee96F1D6ac54919,   // RAI
@@ -48,7 +47,7 @@ contract IncentiveUpdateExecutor {
       0xD533a949740bb3306d119CC777fa900bA034cd52    // CRV
     ];
 
-    uint256[] memory emissions = new uint256[](40);
+    uint256[] memory emissions = new uint256[](38);
 
     emissions[0] = 860629828674028;     // aDAI
     emissions[1] = 1721259657348060;    // vDebtDAI
@@ -70,26 +69,24 @@ contract IncentiveUpdateExecutor {
     emissions[17] = 0;                  // vDebtYFI
     emissions[18] = 28653877437482;     // aXSUSHI
     emissions[19] = 0;                  // vDebtXSUSHI
-    emissions[20] = 0;                  // aUNI
-    emissions[21] = 0;                  // vDebtUNI
-    emissions[22] = 109957713960904;    // aMKR
-    emissions[23] = 0;                  // vDebtMKR
-    emissions[24] = 64158288472709;     // aTUSD
-    emissions[25] = 128316576945418;    // vDebtTUSD
-    emissions[26] = 9846555646706;      // aRAI
-    emissions[27] = 19693111293413;     // vDebtRAI
-    emissions[28] = 4875116344638;      // aBAL
-    emissions[29] = 0;                  // vDebtBAL
-    emissions[30] = 9398984935492;      // aUSDP
-    emissions[31] = 18797969870985;     // vDebtUSP
-    emissions[32] = 8333031502505;      // aFRAX
-    emissions[33] = 16666063005009;     // vDebtFRAX
-    emissions[34] = 22409965951501;     // aDPI
-    emissions[35] = 0;                  // vDebtDPI
-    emissions[36] = 21223932856405;     // aBUSD
-    emissions[37] = 42447865712811;     // vDebtBUSD
-    emissions[38] = 44508547226299;     // aCRV
-    emissions[39] = 0;                  // vDebtCRV
+    emissions[20] = 109957713960904;    // aMKR
+    emissions[21] = 0;                  // vDebtMKR
+    emissions[22] = 64158288472709;     // aTUSD
+    emissions[23] = 128316576945418;    // vDebtTUSD
+    emissions[24] = 9846555646706;      // aRAI
+    emissions[25] = 19693111293413;     // vDebtRAI
+    emissions[26] = 4875116344638;      // aBAL
+    emissions[27] = 0;                  // vDebtBAL
+    emissions[28] = 9398984935492;      // aUSDP
+    emissions[29] = 18797969870985;     // vDebtUSP
+    emissions[30] = 8333031502505;      // aFRAX
+    emissions[31] = 16666063005009;     // vDebtFRAX
+    emissions[32] = 22409965951501;     // aDPI
+    emissions[33] = 0;                  // vDebtDPI
+    emissions[34] = 21223932856405;     // aBUSD
+    emissions[35] = 42447865712811;     // vDebtBUSD
+    emissions[36] = 44508547226299;     // aCRV
+    emissions[37] = 0;                  // vDebtCRV
 
     address[] memory assets = new address[](40);
 
