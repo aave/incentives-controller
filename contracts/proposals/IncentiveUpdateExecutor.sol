@@ -88,7 +88,7 @@ contract IncentiveUpdateExecutor {
     emissions[36] = 44508547226299;     // aCRV
     emissions[37] = 0;                  // vDebtCRV
 
-    address[] memory assets = new address[](40);
+    address[] memory assets = new address[](38);
 
     for (uint256 i = 0; i < reserves.length; i++) {
       DataTypes.ReserveData memory reserveData = ILendingPoolData(LENDING_POOL).getReserveData(reserves[i]);
