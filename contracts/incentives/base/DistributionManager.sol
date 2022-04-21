@@ -6,6 +6,8 @@ import {IAaveDistributionManager} from '../../interfaces/IAaveDistributionManage
 import {SafeMath} from '../../lib/SafeMath.sol';
 import {DistributionTypes} from '../../lib/DistributionTypes.sol';
 
+import "hardhat/console.sol";
+
 /**
  * @title DistributionManager
  * @notice Accounting contract to manage multiple staking distributions
@@ -23,7 +25,7 @@ contract DistributionManager is IAaveDistributionManager {
 
   address public immutable EMISSION_MANAGER;
 
-  uint8 public constant PRECISION = 18;
+  uint8 public constant PRECISION = 0;
 
   mapping(address => AssetData) public assets;
 
