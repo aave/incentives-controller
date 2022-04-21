@@ -15,7 +15,7 @@ import {
   IAaveGovernanceV2,
   IERC20,
   IAaveIncentivesController,
-  ProposalIncentivesRev2Executor__factory,
+  ProposalIncentivesV2Executor__factory,
 } from '../types';
 
 const AAVE_GOVERNANCE_V2 = '0xEC568fffba86c094cf06b22134B23074DFE2252c';
@@ -58,7 +58,7 @@ describe('Upgrade to and test Revision #2 of the implementation', () => {
     )) as IAaveGovernanceV2;
 
     // Deploy the executor contract
-    const proposalIncentivesRev2Executor = await new ProposalIncentivesRev2Executor__factory(
+    const proposalIncentivesRev2Executor = await new ProposalIncentivesV2Executor__factory(
       proposer
     ).deploy();
     // await proposalIncentivesRev2Executor.deployTransaction.wait();
