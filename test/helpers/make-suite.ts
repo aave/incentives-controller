@@ -1,5 +1,6 @@
-import { evmRevert, evmSnapshot, DRE } from '../../helpers/misc-utils';
-import { Signer } from 'ethers';
+import { evmRevert, evmSnapshot, DRE, impersonateAccountsHardhat } from '../../helpers/misc-utils';
+import { constants, Signer, utils } from 'ethers';
+import { deploySelfDestruct } from '../../helpers/contracts-accessors';
 import { getEthersSigners } from '../../helpers/contracts-helpers';
 import { tEthereumAddress } from '../../helpers/types';
 
@@ -85,6 +86,26 @@ export function makeSuite(name: string, tests: (testEnv: TestEnv) => void) {
   describe(name, () => {
     before(async () => {
       setBuidlerevmSnapshotId(await evmSnapshot());
+
+      // Below mocks the behavior of V1 StakedTokenIncentivesController.initialize(),
+      // which grants max allowance of AAVE to the stkAAVE contract
+
+      // Impersonate incentives controller
+      await impersonateAccountsHardhat([testEnv.aaveIncentivesController.address]);
+      const incentivesControllerAsSigner = DRE.ethers.provider.getSigner(
+        testEnv.aaveIncentivesController.address
+      );
+
+      // Seed incentives controller with eth
+      const selfDestructContract = await deploySelfDestruct();
+      await selfDestructContract.destroyAndTransfer(testEnv.aaveIncentivesController.address, {
+        value: utils.parseEther('10'),
+      });
+
+      // Grants max allowance of incentives controller's AAVE to the stkAAVE contract
+      await testEnv.aaveToken
+        .connect(incentivesControllerAsSigner)
+        .approve(testEnv.stakedAave.address, constants.MaxUint256);
     });
     tests(testEnv);
     after(async () => {

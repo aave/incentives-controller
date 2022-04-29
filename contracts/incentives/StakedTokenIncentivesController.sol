@@ -27,7 +27,7 @@ contract StakedTokenIncentivesController is
   using SafeMath for uint256;
   using SafeERC20 for IERC20;
 
-  uint256 public constant REVISION = 1;
+  uint256 public constant REVISION = 2;
 
   IStakedTokenWithConfig public immutable STAKE_TOKEN;
 
@@ -49,13 +49,9 @@ contract StakedTokenIncentivesController is
   }
 
   /**
-   * @dev Initialize IStakedTokenIncentivesController
-   * @param addressesProvider the address of the corresponding addresses provider
+   * @dev Initialize IStakedTokenIncentivesController. Empty after REVISION 1, but maintains the expected interface.
    **/
-  function initialize(address addressesProvider) external initializer {
-    //approves the safety module to allow staking
-    IERC20(STAKE_TOKEN.STAKED_TOKEN()).safeApprove(address(STAKE_TOKEN), type(uint256).max);
-  }
+  function initialize(address) external initializer {}
 
   /// @inheritdoc IAaveIncentivesController
   function configureAssets(address[] calldata assets, uint256[] calldata emissionsPerSecond)
@@ -132,6 +128,15 @@ contract StakedTokenIncentivesController is
     require(user != address(0), 'INVALID_USER_ADDRESS');
     require(to != address(0), 'INVALID_TO_ADDRESS');
     return _claimRewards(assets, amount, msg.sender, user, to);
+  }
+
+  /// @inheritdoc IAaveIncentivesController
+  function claimRewardsToSelf(address[] calldata assets, uint256 amount)
+    external
+    override
+    returns (uint256)
+  {
+    return _claimRewards(assets, amount, msg.sender, msg.sender, msg.sender);
   }
 
   /**
