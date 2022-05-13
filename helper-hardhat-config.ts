@@ -35,8 +35,8 @@ export const NETWORKS_RPC_URL: iParamsPerNetwork<string> = {
   [eXDaiNetwork.xdai]: 'https://rpc.xdaichain.com/',
   [eAvalancheNetwork.avalanche]: 'https://cchain.explorer.avax.network/',
   [eAvalancheNetwork.fuji]: 'https://api.avax-test.network/ext/bc/C/rpc',
-  // [eAuroraNetwork.aurora]: 'https://mainnet.aurora.dev/5eZVevhGw6jT8N8nuXZF14NzfWPibWozE2oNa6Phpbio'
-  [eAuroraNetwork.aurora]: 'http://159.223.90.123:8545',
+  [eAuroraNetwork.aurora]: 'https://mainnet.aurora.dev/5eZVevhGw6jT8N8nuXZF14NzfWPibWozE2oNa6Phpbio'
+  // [eAuroraNetwork.aurora]: 'http://159.223.90.123:8545',
 };
 
 export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
