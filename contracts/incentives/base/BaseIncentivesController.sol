@@ -24,9 +24,13 @@ abstract contract BaseIncentivesController is
 
   uint256 public constant REVISION = 1;
 
-  address public immutable override REWARD_TOKEN;
+  address public override REWARD_TOKEN;
 
   mapping(address => uint256) internal _usersUnclaimedRewards;
+
+  bool private _claimable = true;
+
+  address private _proxy;
 
   // this mapping allows whitelisted addresses to claim on behalf of others
   // useful for contracts that hold tokens to be rewarded but don't have any native logic to claim Liquidity Mining rewards
@@ -41,6 +45,18 @@ abstract contract BaseIncentivesController is
     DistributionManager(emissionManager)
   {
     REWARD_TOKEN = address(rewardToken);
+  }
+
+  function setClaimable(bool claimable) public onlyEmissionManager {
+    _claimable = claimable;
+  }
+
+  function setRewardToken(address token) public onlyEmissionManager {
+    REWARD_TOKEN = token;
+  }
+
+  function setProxy(address proxy) public onlyEmissionManager {
+    _proxy = proxy;
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -70,6 +86,22 @@ abstract contract BaseIncentivesController is
     uint256 userBalance
   ) external override {
     uint256 accruedRewards = _updateUserAssetInternal(user, msg.sender, userBalance, totalSupply);
+    if (accruedRewards != 0) {
+      _usersUnclaimedRewards[user] = _usersUnclaimedRewards[user].add(accruedRewards);
+      emit RewardsAccrued(user, accruedRewards);
+    }
+  }
+
+  /// This shall be called by a controller proxy.
+  function handleProxyAction(
+    address user,
+    uint256 totalSupply,
+    uint256 userBalance,
+    address asset
+  ) external {
+    require(msg.sender == _proxy, "Caller is not proxy");
+
+    uint256 accruedRewards = _updateUserAssetInternal(user, asset, userBalance, totalSupply);
     if (accruedRewards != 0) {
       _usersUnclaimedRewards[user] = _usersUnclaimedRewards[user].add(accruedRewards);
       emit RewardsAccrued(user, accruedRewards);
@@ -163,7 +195,9 @@ abstract contract BaseIncentivesController is
     address claimer,
     address user,
     address to
-  ) internal returns (uint256) {
+  ) internal virtual returns (uint256) {
+    require(_claimable, 'Not claimable now');
+
     if (amount == 0) {
       return 0;
     }
