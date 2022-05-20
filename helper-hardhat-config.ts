@@ -50,6 +50,7 @@ export const NETWORKS_DEFAULT_GAS: iParamsPerNetwork<number> = {
   [ePolygonNetwork.mumbai]: 1 * GWEI,
   [ePolygonNetwork.matic]: 2 * GWEI,
   [eXDaiNetwork.xdai]: 1 * GWEI,
+  // [eAuroraNetwork.aurora]: 10 * GWEI,
   [eAuroraNetwork.aurora]: 0 * GWEI,
   [eAvalancheNetwork.fuji]: 225 * GWEI,
   [eAvalancheNetwork.avalanche]: 225 * GWEI,

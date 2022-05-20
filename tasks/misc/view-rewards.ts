@@ -12,7 +12,7 @@ task('rewards', 'Review rewards')
 
         // increase timestamp by 1 sec
         // await localBRE.ethers.provider.send('evm_increaseTime', [1]);
-        await localBRE.ethers.provider.send('evm_mine', []);
+        // await localBRE.ethers.provider.send('evm_mine', []);
 
         const incentivesProxy = PullRewardsIncentivesController__factory
             .connect(proxy, signer);
