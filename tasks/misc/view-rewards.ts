@@ -17,11 +17,15 @@ task('rewards', 'Review rewards')
         const incentivesProxy = PullRewardsIncentivesController__factory
             .connect(proxy, signer);
 
+        const token = await incentivesProxy.REWARD_TOKEN();
+
         const res = await incentivesProxy.getRewardsBalance(
             [asset],
             user
         );
 
+        console.log('reward token is');
+        console.log(token);
         console.log('reward is');
         console.log(res.toString());
     });
