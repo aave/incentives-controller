@@ -17,3 +17,5 @@ coverage
 .coverage_contracts
 deployments/
 coverage.json
+
+hardhat.out

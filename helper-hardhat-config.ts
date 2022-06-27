@@ -5,7 +5,7 @@ import {
   eEthereumNetwork,
   ePolygonNetwork,
   eXDaiNetwork,
-  iParamsPerNetwork,
+  iParamsPerNetwork
 } from './helpers/types';
 
 require('dotenv').config();

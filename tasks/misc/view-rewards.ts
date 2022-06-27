@@ -28,4 +28,8 @@ task('rewards', 'Review rewards')
         console.log(token);
         console.log('reward is');
         console.log(res.toString());
+
+        const assetData = await incentivesProxy.getAssetData(asset);
+        console.log('assetData');
+        console.log(assetData);
     });

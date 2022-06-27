@@ -15,7 +15,7 @@ task(
 )
   .addParam('token')
   .setAction(
-    async ({ token}, localBRE) => {
+    async ({ token, }, localBRE) => {
       await localBRE.run('set-DRE');
       const deployer = await getFirstSigner();
       const proxyAdmin = await (await getSigner(1)).getAddress();
@@ -28,7 +28,7 @@ task(
       );
 
       const proxy = InitializableAdminUpgradeabilityProxy__factory.connect(
-          '0x200a4d6c7c946FDEF34562bC3204B82dCedcECea',
+          '0x038B86d9d8FAFdd0a02ebd1A476432877b0107C8',
           await getSigner(1), 
       );
 
