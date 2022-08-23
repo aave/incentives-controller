@@ -3,6 +3,9 @@ import { getFirstSigner } from '../../helpers/contracts-helpers';
 import { waitForTx } from '../../helpers/misc-utils';
 import { PullRewardsIncentivesController__factory } from '../../types';
 
+  // total amount of rewards that each incentives controller would distribute
+  const totalRewards = ['1000', '1000'];
+
   const assetConfigs = {
     WNEAR: {
       aToken: '0x6E20AE9deE86D03671668C92Dcc6230B10d67A1e',
@@ -85,10 +88,16 @@ import { PullRewardsIncentivesController__factory } from '../../types';
           console.log(`${assetSymbol} configured.`)
         }
 
+        // TODO make it configurable
         const distributionEnd = Math.floor(Date.now() / 1000) + (60 * 24 * 3600); // 2 months from now
         await waitForTx(
           await incentivesProxy.setDistributionEnd(distributionEnd)
         );
         console.log(`Distribution end set to ${distributionEnd}`);
+
+        await waitForTx(
+          await incentivesProxy.setTotalRewards(totalRewards[index])
+        );
+        console.log(`Total reward token amount set to ${totalRewards[index]}`);
       }
     );
