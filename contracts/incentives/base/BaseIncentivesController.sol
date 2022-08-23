@@ -32,6 +32,15 @@ abstract contract BaseIncentivesController is
 
   address private _proxy;
 
+  // Amount of total rewards that this controller will distribute, including all assets
+  uint256 private TOTAL_REWARDS;
+
+  // Total amount of rewards that was sent
+  uint256 private _totalSent; 
+
+  // How many tokens has each user already claimed (already sent to them)
+  mapping(address => uint256) private _userClaimedRewards;
+
   // this mapping allows whitelisted addresses to claim on behalf of others
   // useful for contracts that hold tokens to be rewarded but don't have any native logic to claim Liquidity Mining rewards
   mapping(address => address) internal _authorizedClaimers;
@@ -57,6 +66,14 @@ abstract contract BaseIncentivesController is
 
   function setProxy(address proxy) public onlyEmissionManager {
     _proxy = proxy;
+  }
+
+  function setTotalRewards(uint256 totalRewards) external onlyEmissionManager {
+    TOTAL_REWARDS = totalRewards;
+  }
+
+  function getTotalRewards() external view returns (uint256) {
+    return TOTAL_REWARDS;
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -109,8 +126,11 @@ abstract contract BaseIncentivesController is
   }
 
   /// @inheritdoc IAaveIncentivesController
+  // Returns the total amount of rewards that a user could eventually claim.
+  // The amount a user can actually claim currently is determined by the progressive emission status.
+  // see getCurrentClaimableBalance below
   function getRewardsBalance(address[] calldata assets, address user)
-    external
+    public
     view
     override
     returns (uint256)
@@ -126,6 +146,35 @@ abstract contract BaseIncentivesController is
     }
     unclaimedRewards = unclaimedRewards.add(_getUnclaimedRewards(user, userState));
     return unclaimedRewards;
+  }
+
+  // Returns the amount of rewards that a user can actually claim right now.
+  function getCurrentClaimableBalance(address[] calldata assets, address user)
+    public
+    view
+    returns (uint256)
+  {
+    uint256 eventualClaimable = getRewardsBalance(assets, user);
+    // how many rewards were granted to this user so far
+    uint256 totalRewards = eventualClaimable.add(_userClaimedRewards[user]);
+    // how many rewards of totalRewards were already distributed
+    uint256 distributedRewards = distributedAmount(totalRewards);
+
+    return distributedRewards.sub(_userClaimedRewards[user]);
+  }
+
+  // How many tokens out of total were already distributed by progressive emission strategy
+  function distributedAmount(uint256 total)
+    internal
+    view
+    returns (uint256)
+  {
+    uint256 controllerAccumulatedRewards = _totalSent.add(_vaultBalance());
+    controllerAccumulatedRewards = controllerAccumulatedRewards <= TOTAL_REWARDS
+      ? controllerAccumulatedRewards
+      : TOTAL_REWARDS;
+
+    return total.mul(controllerAccumulatedRewards).div(TOTAL_REWARDS);
   }
 
   /// @inheritdoc IAaveIncentivesController
@@ -184,7 +233,7 @@ abstract contract BaseIncentivesController is
 
   /**
    * @dev Claims reward for an user on behalf, on all the assets of the lending pool, accumulating the pending rewards.
-   * @param amount Amount of rewards to claim
+   * @param amount Amount of rewards to claim. In fact we will ignore this param and always claim all possible rewards.
    * @param user Address to check and claim rewards
    * @param to Address that will be receiving the rewards
    * @return Rewards claimed
@@ -201,30 +250,35 @@ abstract contract BaseIncentivesController is
     if (amount == 0) {
       return 0;
     }
-    uint256 unclaimedRewards = _usersUnclaimedRewards[user];
+    uint256 totalUnclaimedRewards = _usersUnclaimedRewards[user];
 
-    if (amount > unclaimedRewards) {
-      DistributionTypes.UserStakeInput[] memory userState =
-        new DistributionTypes.UserStakeInput[](assets.length);
-      for (uint256 i = 0; i < assets.length; i++) {
-        userState[i].underlyingAsset = assets[i];
-        (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceToken(assets[i])
-          .getScaledUserBalanceAndSupply(user);
-      }
-
-      uint256 accruedRewards = _claimRewards(user, userState);
-      if (accruedRewards != 0) {
-        unclaimedRewards = unclaimedRewards.add(accruedRewards);
-        emit RewardsAccrued(user, accruedRewards);
-      }
+    DistributionTypes.UserStakeInput[] memory userState =
+      new DistributionTypes.UserStakeInput[](assets.length);
+    for (uint256 i = 0; i < assets.length; i++) {
+      userState[i].underlyingAsset = assets[i];
+      (userState[i].stakedByUser, userState[i].totalStaked) = IScaledBalanceToken(assets[i])
+        .getScaledUserBalanceAndSupply(user);
     }
 
-    if (unclaimedRewards == 0) {
+    uint256 accruedRewards = _claimRewards(user, userState);
+    if (accruedRewards != 0) {
+      totalUnclaimedRewards = totalUnclaimedRewards.add(accruedRewards);
+      emit RewardsAccrued(user, accruedRewards);
+    }
+
+    if (totalUnclaimedRewards == 0) {
       return 0;
     }
 
-    uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
-    _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
+    // uint256 amountToClaim = amount > unclaimedRewards ? unclaimedRewards : amount;
+    // _usersUnclaimedRewards[user] = unclaimedRewards - amountToClaim; // Safe due to the previous line
+    uint256 userTotalRewards = totalUnclaimedRewards.add(_userClaimedRewards[user]);
+    uint256 amountToClaim = distributedAmount(userTotalRewards).sub(_userClaimedRewards[user]);
+    
+    _usersUnclaimedRewards[user] = totalUnclaimedRewards.sub(amountToClaim);
+    _userClaimedRewards[user] = _userClaimedRewards[user].add(amountToClaim);
+
+    _totalSent = _totalSent.add(amountToClaim);
 
     _transferRewards(to, amountToClaim);
     emit RewardsClaimed(user, to, claimer, amountToClaim);
@@ -238,4 +292,9 @@ abstract contract BaseIncentivesController is
    * @param amount Amount of rewards to transfer
    */
   function _transferRewards(address to, uint256 amount) internal virtual;
+
+  /**
+   * @dev Vault balance of reward token
+   */
+  function _vaultBalance() internal view virtual returns (uint256);
 }

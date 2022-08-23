@@ -50,10 +50,14 @@ contract PullRewardsIncentivesController is
     _rewardsVault = rewardsVault;
     emit RewardsVaultUpdated(rewardsVault);
   }
-
  
   /// @inheritdoc BaseIncentivesController
   function _transferRewards(address to, uint256 amount) internal override {
     IERC20(REWARD_TOKEN).safeTransferFrom(_rewardsVault, to, amount);
+  }
+
+  /// @inheritdoc BaseIncentivesController
+  function _vaultBalance() internal view override returns (uint256) {
+    return IERC20(REWARD_TOKEN).balanceOf(_rewardsVault);
   }
 }

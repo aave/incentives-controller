@@ -37,4 +37,9 @@ contract StakedTokenIncentivesController is BaseIncentivesController {
   function _transferRewards(address to, uint256 amount) internal override {
     STAKE_TOKEN.stake(to, amount);
   }
+
+  /// @inheritdoc BaseIncentivesController
+  function _vaultBalance() internal view override returns (uint256) {
+    return 0;
+  }
 }
